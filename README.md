@@ -69,13 +69,28 @@ LitchiCard.fromFigma(
 )
 ```
 
-### 3. High-Performance 1-Pass Batching with `LitchiScope`
-Eliminate the multi-`BackdropFilter` GPU bottleneck in scrolling feeds:
+### 3. Signature Floating Glass Tab Bar (`LitchiTabBar`)
+Floating navigation bar with an animated, sliding liquid glass squircle selection pill that squashes and stretches with spring physics:
+```dart
+LitchiTabBar(
+  flavour: LitchiFlavour.dewy,
+  selectedIndex: currentTab,
+  onTabSelected: (index) => setState(() => currentTab = index),
+  items: const [
+    LitchiTabItem(icon: Icons.auto_awesome, label: 'Feed'),
+    LitchiTabItem(icon: Icons.local_bar, label: 'Drinks', badgeText: 'NEW'),
+    LitchiTabItem(icon: Icons.person_outline, label: 'Profile'),
+  ],
+)
+```
+
+### 4. 120 FPS High-Performance Feeds (`LitchiScope`)
+Eliminate the multi-`BackdropFilter` GPU bottleneck in scrolling feeds with `liteMode`:
 ```dart
 LitchiScope(
-  batchBlur: true,           // Single coordinated pass — 120 FPS in scroll views
+  liteMode: true,            // Zero redundant GPU passes — 120 FPS in scroll views
   cornerSmoothing: 0.6,      // Unified Apple continuous curvature
-  lightAngle: 135.0,         // Unified scene lighting
+  lightAngle: 135.0,         // Unified physical scene lighting
   child: ListView(
     children: [
       LitchiCard(...),
@@ -85,7 +100,7 @@ LitchiScope(
 )
 ```
 
-### 4. Tactile Glass Button
+### 5. Tactile Glass Button
 ```dart
 LitchiButton.fromFigma(
   lightAngle: 135.0,
@@ -96,7 +111,7 @@ LitchiButton.fromFigma(
 )
 ```
 
-### 5. Core Primitive
+### 6. Core Primitive
 ```dart
 LitchiGlass.fromFigma(
   lightAngle: 135.0,

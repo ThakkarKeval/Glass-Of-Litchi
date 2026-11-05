@@ -280,7 +280,7 @@ class LitchiFlavour {
     );
   }
 
-  /// Fresh, crisp morning dew with high translucency and subtle rainbow rim.
+  /// Fresh, crisp morning dew with high translucency, crystalline clarity, and subtle rainbow rim.
   static const LitchiFlavour dewy = LitchiFlavour(
     name: 'Dewy',
     lightAngle: 135.0,
@@ -291,11 +291,11 @@ class LitchiFlavour {
     frost: 22.0,
     splay: 45.0,
     blurSigma: 18.0,
-    tintColor: Color(0x18FFFFFF),
-    borderWidth: 1.2,
-    specularOpacity: 0.65,
-    secondarySpecularOpacity: 0.35,
-    fallbackColor: Color(0xD91E1E26),
+    tintColor: Color(0x0EFFFFFF),
+    borderWidth: 1.0,
+    specularOpacity: 0.48,
+    secondarySpecularOpacity: 0.22,
+    fallbackColor: Color(0xD912151D),
   );
 
   /// Vibrant, succulent lychee fruit tint with rose-gold prismatic sheen.

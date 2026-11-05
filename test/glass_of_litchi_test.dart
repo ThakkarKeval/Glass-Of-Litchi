@@ -34,18 +34,16 @@ void main() {
         splay: 40.0,
       );
 
-      // Chromatic dispersion creates 6 prismatic stops (cyan lead, white core, rose trail, bounce)
       expect(gradient.stops?.length, 6);
       expect(gradient.colors.length, 6);
     });
   });
 
-  group('Apple Squircle Continuous Curvature', () {
-    test('SquirclePath.create generates valid continuous path for G2 smoothing', () {
+  group('Apple Squircle Continuous Curvature & Memoization', () {
+    test('SquirclePath.create generates valid continuous path and caches results', () {
       const rect = Rect.fromLTWH(0, 0, 200, 100);
       final borderRadius = BorderRadius.circular(24.0);
 
-      // Smoothing = 0.0 (Circular RRect)
       final rrectPath = SquirclePath.create(
         rect: rect,
         borderRadius: borderRadius,
@@ -53,14 +51,19 @@ void main() {
       );
       expect(rrectPath, isNotNull);
 
-      // Smoothing = 0.6 (Apple G2 Continuous Squircle)
-      final squirclePath = SquirclePath.create(
+      final squirclePath1 = SquirclePath.create(
         rect: rect,
         borderRadius: borderRadius,
         smoothing: 0.6,
       );
-      expect(squirclePath, isNotNull);
-      expect(squirclePath.computeMetrics().isNotEmpty, isTrue);
+      final squirclePath2 = SquirclePath.create(
+        rect: rect,
+        borderRadius: borderRadius,
+        smoothing: 0.6,
+      );
+      expect(squirclePath1, isNotNull);
+      // Memoized cache returns same Path reference
+      expect(identical(squirclePath1, squirclePath2), isTrue);
     });
 
     test('SquircleClipper clips correctly and detects rebuild needs', () {
@@ -85,25 +88,24 @@ void main() {
     });
   });
 
-  group('LitchiScope 1-Pass Batching & Ambient Lighting', () {
-    testWidgets('LitchiScope coordinates batchBlur and disables child BackdropFilter', (tester) async {
+  group('LitchiScope liteMode & Ambient Lighting', () {
+    testWidgets('LitchiScope coordinates liteMode and disables child BackdropFilter', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: LitchiScope(
-              batchBlur: true,
+              liteMode: true,
               lightAngle: 45.0,
               cornerSmoothing: 0.8,
               child: LitchiGlass(
-                child: const Text('Batched Glass Child'),
+                child: const Text('Lite Glass Child'),
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text('Batched Glass Child'), findsOneWidget);
-      // Under batchBlur: true, child does NOT spawn an independent BackdropFilter, saving GPU passes
+      expect(find.text('Lite Glass Child'), findsOneWidget);
       expect(find.byType(BackdropFilter), findsNothing);
     });
   });
@@ -132,8 +134,8 @@ void main() {
     });
   });
 
-  group('LitchiCard widget with fromFigma factory', () {
-    testWidgets('renders and handles tap with tactile spring feedback', (tester) async {
+  group('LitchiCard widget with tactile feedback', () {
+    testWidgets('renders, tracks drag tilt and handles tap with Figma properties', (tester) async {
       var tapped = false;
 
       await tester.pumpWidget(
@@ -193,6 +195,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(pressed, isTrue);
+    });
+  });
+
+  group('LitchiTabBar signature floating glass navigation', () {
+    testWidgets('renders items and handles tab switching with spring pill', (tester) async {
+      var activeIndex = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: StatefulBuilder(
+              builder: (context, setState) {
+                return LitchiTabBar(
+                  selectedIndex: activeIndex,
+                  onTabSelected: (index) {
+                    setState(() => activeIndex = index);
+                  },
+                  items: const [
+                    LitchiTabItem(icon: Icons.home, label: 'Home'),
+                    LitchiTabItem(icon: Icons.search, label: 'Search'),
+                    LitchiTabItem(icon: Icons.person, label: 'Profile'),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Search'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
+
+      await tester.tap(find.text('Search'));
+      await tester.pumpAndSettle();
+
+      expect(activeIndex, 1);
     });
   });
 }

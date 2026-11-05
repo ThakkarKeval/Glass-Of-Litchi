@@ -82,8 +82,14 @@ class _CornerPathParams {
 class SquirclePath {
   const SquirclePath._();
 
+  static final Map<int, Path> _cache = {};
+  static const int _maxCacheEntries = 128;
+
   /// Creates a continuous squircle [Path] for the given [rect], [borderRadius],
   /// and [smoothing] (0.0 to 1.0).
+  ///
+  /// Results are memoized in an internal cache to avoid recomputing cubic
+  /// Bézier equations during 120 FPS animations and scrolling.
   static Path create({
     required Rect rect,
     required BorderRadius borderRadius,
@@ -95,6 +101,23 @@ class SquirclePath {
       final path = Path();
       path.addRRect(borderRadius.toRRect(rect));
       return path;
+    }
+
+    final key = Object.hash(
+      (rect.left * 10).round(),
+      (rect.top * 10).round(),
+      (rect.width * 10).round(),
+      (rect.height * 10).round(),
+      (borderRadius.topLeft.x * 10).round(),
+      (borderRadius.topRight.x * 10).round(),
+      (borderRadius.bottomRight.x * 10).round(),
+      (borderRadius.bottomLeft.x * 10).round(),
+      (clampedSmoothing * 100).round(),
+    );
+
+    final cached = _cache[key];
+    if (cached != null) {
+      return cached;
     }
 
     final width = rect.width;
@@ -254,6 +277,12 @@ class SquirclePath {
     }
 
     path.close();
+
+    if (_cache.length >= _maxCacheEntries) {
+      _cache.clear();
+    }
+    _cache[key] = path;
+
     return path;
   }
 }

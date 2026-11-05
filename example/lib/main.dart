@@ -68,76 +68,25 @@ class _MainTabScreenState extends State<MainTabScreen> {
         index: _currentTab,
         children: _screens,
       ),
-      // Floating Glass Bottom Navigation Bar
+      // Signature Floating Glass Tab Bar with Sliding Liquid Squircle Pill
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 12.0),
-          child: LitchiGlass(
+          padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 12.0),
+          child: LitchiTabBar(
             flavour: LitchiFlavour.dewy,
-            borderRadius: BorderRadius.circular(32.0),
-            cornerSmoothing: 0.6,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.view_agenda_rounded,
-                  label: 'Glass List',
-                ),
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.tune_rounded,
-                  label: 'Figma Inspector',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = _currentTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentTab = index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-        decoration: isSelected
-            ? BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(24.0),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35),
-                  width: 1.0,
-                ),
-              )
-            : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20.0,
-              color: isSelected ? Colors.white : Colors.white60,
-            ),
-            const SizedBox(width: 8.0),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13.0,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.white60,
+            selectedIndex: _currentTab,
+            onTabSelected: (index) => setState(() => _currentTab = index),
+            items: const [
+              LitchiTabItem(
+                icon: Icons.tune_rounded,
+                label: 'Figma Inspector',
               ),
-            ),
-          ],
+              LitchiTabItem(
+                icon: Icons.view_agenda_rounded,
+                label: 'Glass List',
+              ),
+            ],
+          ),
         ),
       ),
     );

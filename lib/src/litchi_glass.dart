@@ -176,9 +176,9 @@ class LitchiGlass extends StatelessWidget {
     final effectiveSmoothing =
         (cornerSmoothing ?? scope?.cornerSmoothing ?? 0.6).clamp(0.0, 1.0);
 
-    // If scoped batch blur is active, child bypasses individual BackdropFilter to save GPU fill rate
+    // If scoped liteMode is active, child bypasses individual BackdropFilter to save GPU fill rate
     final effectiveEnableBlur =
-        (scope?.batchBlur == true) ? false : enableBlur;
+        (scope?.effectiveLiteMode == true) ? false : enableBlur;
 
     final effectiveSpecular = specularOpacity ??
         (lightPercent != null
@@ -241,7 +241,7 @@ class LitchiGlass extends StatelessWidget {
             stops: const [0.0, 0.45],
             colors: [
               Colors.white.withValues(
-                alpha: (effectiveSpecular * 0.25).clamp(0.0, 1.0),
+                alpha: (effectiveSpecular * 0.09).clamp(0.0, 1.0),
               ),
               Colors.transparent,
             ],
@@ -302,7 +302,7 @@ class LitchiGlass extends StatelessWidget {
       }
     } else {
       final solidWidget = Container(
-        color: (scope?.batchBlur == true) ? effectiveTint : flavour.fallbackColor,
+        color: (scope?.effectiveLiteMode == true) ? effectiveTint : flavour.fallbackColor,
         child: content,
       );
 
@@ -419,11 +419,11 @@ class _LitchiBorderPainter extends CustomPainter {
           stops: const [0.0, 0.5, 1.0],
           colors: [
             Colors.white.withValues(
-              alpha: (specularOpacity * 0.35 * (refraction / 100.0)).clamp(0.0, 0.45),
+              alpha: (specularOpacity * 0.16 * (refraction / 100.0)).clamp(0.0, 0.22),
             ),
             Colors.transparent,
             Colors.white.withValues(
-              alpha: (specularOpacity * 0.18 * (refraction / 100.0)).clamp(0.0, 0.3),
+              alpha: (specularOpacity * 0.08 * (refraction / 100.0)).clamp(0.0, 0.14),
             ),
           ],
         );

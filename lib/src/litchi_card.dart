@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'flavour.dart';
 import 'litchi_glass.dart';
+import 'squircle.dart';
 
 /// A drop-in, highly polished glass card component with Apple squircle curvature
 /// and spring-driven tactile touch-flex physics.
@@ -190,31 +191,6 @@ class _LitchiCardState extends State<LitchiCard>
     super.dispose();
   }
 
-  void _handleTapDown(TapDownDetails details) {
-    if (widget.onTap != null && widget.enableInteractiveFeedback) {
-      final renderBox = context.findRenderObject() as RenderBox?;
-      if (renderBox != null && renderBox.hasSize) {
-        _cardSize = renderBox.size;
-      }
-      setState(() {
-        _touchLocalPosition = details.localPosition;
-      });
-      _controller.forward();
-    }
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    if (widget.onTap != null && widget.enableInteractiveFeedback) {
-      _controller.reverse();
-    }
-  }
-
-  void _handleTapCancel() {
-    if (widget.onTap != null && widget.enableInteractiveFeedback) {
-      _controller.reverse();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final effectiveAngle = widget.lightAngle ?? widget.flavour.lightAngle;
@@ -234,90 +210,136 @@ class _LitchiCardState extends State<LitchiCard>
       shadowDir.y * (effectiveElevation * 0.55),
     );
 
-    final innerCard = Container(
-      decoration: effectiveElevation > 0
-          ? BoxDecoration(
-              borderRadius: widget.borderRadius,
-              boxShadow: [
-                BoxShadow(
-                  color: effectiveShadowColor,
-                  blurRadius: effectiveElevation * 2.2,
-                  offset: shadowOffset,
-                  spreadRadius: -2.0,
-                ),
-              ],
-            )
-          : null,
-      child: LitchiGlass(
-        flavour: widget.flavour,
-        borderRadius: widget.borderRadius,
-        cornerSmoothing: widget.cornerSmoothing,
-        width: widget.width,
-        height: widget.height,
-        padding: widget.padding,
-        blur: widget.blur,
-        tint: widget.tint,
-        lightAngle: widget.lightAngle,
-        lightPercent: widget.lightPercent,
-        refraction: widget.refraction,
-        depth: widget.depth,
-        dispersion: widget.dispersion,
-        frost: widget.frost,
-        splay: widget.splay,
-        specularOpacity: widget.specularOpacity,
-        secondarySpecularOpacity: widget.secondarySpecularOpacity,
-        enableBlur: widget.enableBlur,
-        child: widget.child,
-      ),
+    final resolvedRadius = widget.borderRadius.resolve(Directionality.of(context));
+
+    Widget innerCard = LitchiGlass(
+      flavour: widget.flavour,
+      borderRadius: widget.borderRadius,
+      cornerSmoothing: widget.cornerSmoothing,
+      width: widget.width,
+      height: widget.height,
+      padding: widget.padding,
+      blur: widget.blur,
+      tint: widget.tint,
+      lightAngle: widget.lightAngle,
+      lightPercent: widget.lightPercent,
+      refraction: widget.refraction,
+      depth: widget.depth,
+      dispersion: widget.dispersion,
+      frost: widget.frost,
+      splay: widget.splay,
+      specularOpacity: widget.specularOpacity,
+      secondarySpecularOpacity: widget.secondarySpecularOpacity,
+      enableBlur: widget.enableBlur,
+      child: widget.child,
     );
+
+    // Apply shadow: accurately follow Apple squircle silhouette when smoothing > 0
+    if (effectiveElevation > 0) {
+      if (widget.cornerSmoothing > 0.0) {
+        innerCard = CustomPaint(
+          painter: _SquircleShadowPainter(
+            borderRadius: resolvedRadius,
+            cornerSmoothing: widget.cornerSmoothing,
+            shadowColor: effectiveShadowColor,
+            blurRadius: effectiveElevation * 2.2,
+            offset: shadowOffset,
+          ),
+          child: innerCard,
+        );
+      } else {
+        innerCard = DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: widget.borderRadius,
+            boxShadow: [
+              BoxShadow(
+                color: effectiveShadowColor,
+                blurRadius: effectiveElevation * 2.2,
+                offset: shadowOffset,
+                spreadRadius: -2.0,
+              ),
+            ],
+          ),
+          child: innerCard,
+        );
+      }
+    }
 
     Widget card = innerCard;
 
     if (widget.onTap != null) {
-      card = GestureDetector(
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
-        onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedBuilder(
-          animation: _springAnimation,
-          builder: (context, child) {
-            if (!widget.enableInteractiveFeedback) return child!;
+      card = Listener(
+        onPointerDown: (event) {
+          if (widget.enableInteractiveFeedback) {
+            final renderBox = context.findRenderObject() as RenderBox?;
+            if (renderBox != null && renderBox.hasSize) {
+              _cardSize = renderBox.size;
+            }
+            setState(() {
+              _touchLocalPosition = event.localPosition;
+            });
+            _controller.forward();
+          }
+        },
+        onPointerMove: (event) {
+          if (widget.enableInteractiveFeedback) {
+            setState(() {
+              _touchLocalPosition = event.localPosition;
+            });
+          }
+        },
+        onPointerUp: (_) {
+          if (widget.enableInteractiveFeedback) {
+            _controller.reverse();
+          }
+        },
+        onPointerCancel: (_) {
+          if (widget.enableInteractiveFeedback) {
+            _controller.reverse();
+          }
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedBuilder(
+            animation: _springAnimation,
+            builder: (context, child) {
+              if (!widget.enableInteractiveFeedback) return child!;
 
-            final t = _springAnimation.value;
-            final cardWidth = _cardSize.width > 0
-                ? _cardSize.width
-                : (widget.width ?? 300.0);
-            final cardHeight = _cardSize.height > 0
-                ? _cardSize.height
-                : (widget.height ?? 160.0);
+              final t = _springAnimation.value;
+              final cardWidth = _cardSize.width > 0
+                  ? _cardSize.width
+                  : (widget.width ?? 300.0);
+              final cardHeight = _cardSize.height > 0
+                  ? _cardSize.height
+                  : (widget.height ?? 160.0);
 
-            // Compute normalized relative touch position (-1.0 to 1.0)
-            final nx = cardWidth > 0
-                ? ((_touchLocalPosition.dx / cardWidth) * 2.0 - 1.0)
-                    .clamp(-1.0, 1.0)
-                : 0.0;
-            final ny = cardHeight > 0
-                ? ((_touchLocalPosition.dy / cardHeight) * 2.0 - 1.0)
-                    .clamp(-1.0, 1.0)
-                : 0.0;
+              // Compute normalized relative touch position (-1.0 to 1.0)
+              final nx = cardWidth > 0
+                  ? ((_touchLocalPosition.dx / cardWidth) * 2.0 - 1.0)
+                      .clamp(-1.0, 1.0)
+                  : 0.0;
+              final ny = cardHeight > 0
+                  ? ((_touchLocalPosition.dy / cardHeight) * 2.0 - 1.0)
+                      .clamp(-1.0, 1.0)
+                  : 0.0;
 
-            final s = 1.0 - (0.02 * t);
-            // Subtle 3D perspective touch flex tilt
-            final transform = Matrix4.identity()
-              ..setEntry(3, 2, 0.001)
-              ..rotateX(-ny * 0.04 * t)
-              ..rotateY(nx * 0.04 * t)
-              ..scaleByDouble(s, s, 1.0, 1.0);
+              final s = 1.0 - (0.02 * t);
+              // Dynamic 3D perspective touch flex tilt
+              final transform = Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(-ny * 0.04 * t)
+                ..rotateY(nx * 0.04 * t)
+                ..scaleByDouble(s, s, 1.0, 1.0);
 
-            return Transform(
-              transform: transform,
-              alignment: Alignment.center,
-              child: child,
-            );
-          },
-          child: innerCard,
+              return Transform(
+                transform: transform,
+                alignment: Alignment.center,
+                child: child,
+              );
+            },
+            child: innerCard,
+          ),
         ),
       );
     }
@@ -327,5 +349,50 @@ class _LitchiCardState extends State<LitchiCard>
     }
 
     return card;
+  }
+}
+
+/// Custom painter for rendering an ambient drop shadow that follows an authentic
+/// Apple squircle silhouette instead of a standard circular rounded rectangle.
+class _SquircleShadowPainter extends CustomPainter {
+  const _SquircleShadowPainter({
+    required this.borderRadius,
+    required this.cornerSmoothing,
+    required this.shadowColor,
+    required this.blurRadius,
+    required this.offset,
+  });
+
+  final BorderRadius borderRadius;
+  final double cornerSmoothing;
+  final Color shadowColor;
+  final double blurRadius;
+  final Offset offset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (blurRadius <= 0.0 || shadowColor.a <= 0.0) return;
+
+    final shadowRect = (offset & size).deflate(1.5);
+    final shadowPath = SquirclePath.create(
+      rect: shadowRect,
+      borderRadius: borderRadius,
+      smoothing: cornerSmoothing,
+    );
+
+    final paint = Paint()
+      ..color = shadowColor
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurRadius);
+
+    canvas.drawPath(shadowPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SquircleShadowPainter oldDelegate) {
+    return oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.cornerSmoothing != cornerSmoothing ||
+        oldDelegate.shadowColor != shadowColor ||
+        oldDelegate.blurRadius != blurRadius ||
+        oldDelegate.offset != offset;
   }
 }

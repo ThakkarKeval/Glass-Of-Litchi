@@ -10,3 +10,4 @@ export 'src/litchi_card.dart';
 export 'src/litchi_button.dart';
 export 'src/litchi_scope.dart';
 export 'src/squircle.dart';
+export 'src/litchi_tab_bar.dart';
