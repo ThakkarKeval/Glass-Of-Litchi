@@ -54,39 +54,55 @@ LitchiCard(
 ```
 
 ### 2. Copy Directly from Figma Glass (1:1 Match)
-Match all 7 standard Figma Glass effect options directly:
+Match all standard Figma Glass effect options and Apple squircle continuous curvature directly:
 ```dart
 LitchiCard.fromFigma(
-  lightAngle: 135.0,    // 0° to 360° (direction of key light)
-  lightPercent: 85.0,   // 0% to 100% (specular peak brightness)
-  refraction: 25.0,     // 0% to 100% (inner optical bevel bending)
-  depth: 10.0,          // 0 to 50 px (3D slab thickness & drop shadow)
-  dispersion: 35.0,     // 0% to 100% (chromatic rainbow rim fringing)
-  frost: 26.0,          // 0% to 100% (matte blur roughness)
-  splay: 50.0,          // 0% to 100% (specular highlight arc spread)
+  lightAngle: 135.0,        // 0° to 360° (direction of key light)
+  lightPercent: 85.0,       // 0% to 100% (specular peak brightness)
+  refraction: 25.0,         // 0% to 100% (inner optical bevel bending)
+  depth: 10.0,              // 0 to 50 px (3D slab thickness & drop shadow)
+  dispersion: 35.0,         // 0% to 100% (chromatic rainbow rim fringing)
+  frost: 26.0,              // 0% to 100% (matte blur roughness)
+  splay: 50.0,              // 0% to 100% (specular highlight arc spread)
+  cornerSmoothing: 0.6,     // 0.0 to 1.0 (Apple G2 continuous squircle)
   child: const Text('Exact Figma Clone'),
 )
 ```
 
-### 3. Tactile Glass Button
+### 3. High-Performance 1-Pass Batching with `LitchiScope`
+Eliminate the multi-`BackdropFilter` GPU bottleneck in scrolling feeds:
+```dart
+LitchiScope(
+  batchBlur: true,           // Single coordinated pass — 120 FPS in scroll views
+  cornerSmoothing: 0.6,      // Unified Apple continuous curvature
+  lightAngle: 135.0,         // Unified scene lighting
+  child: ListView(
+    children: [
+      LitchiCard(...),
+      LitchiCard(...),
+    ],
+  ),
+)
+```
+
+### 4. Tactile Glass Button
 ```dart
 LitchiButton.fromFigma(
   lightAngle: 135.0,
   lightPercent: 90.0,
+  cornerSmoothing: 0.6,
   onPressed: () {},
   child: const Text('Refresh'),
 )
 ```
 
-### 4. Core Primitive
+### 5. Core Primitive
 ```dart
 LitchiGlass.fromFigma(
   lightAngle: 135.0,
   frost: 25.0,
   dispersion: 20.0,
-  child: const Text('Custom Container'),
-)
-```
+  cornerSmoothing: 0.6,
   child: const Text('Custom Container'),
 )
 ```

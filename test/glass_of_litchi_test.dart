@@ -40,6 +40,74 @@ void main() {
     });
   });
 
+  group('Apple Squircle Continuous Curvature', () {
+    test('SquirclePath.create generates valid continuous path for G2 smoothing', () {
+      const rect = Rect.fromLTWH(0, 0, 200, 100);
+      final borderRadius = BorderRadius.circular(24.0);
+
+      // Smoothing = 0.0 (Circular RRect)
+      final rrectPath = SquirclePath.create(
+        rect: rect,
+        borderRadius: borderRadius,
+        smoothing: 0.0,
+      );
+      expect(rrectPath, isNotNull);
+
+      // Smoothing = 0.6 (Apple G2 Continuous Squircle)
+      final squirclePath = SquirclePath.create(
+        rect: rect,
+        borderRadius: borderRadius,
+        smoothing: 0.6,
+      );
+      expect(squirclePath, isNotNull);
+      expect(squirclePath.computeMetrics().isNotEmpty, isTrue);
+    });
+
+    test('SquircleClipper clips correctly and detects rebuild needs', () {
+      final clipper = SquircleClipper(
+        borderRadius: BorderRadius.circular(16.0),
+        smoothing: 0.6,
+      );
+      final clip = clipper.getClip(const Size(150, 80));
+      expect(clip, isNotNull);
+
+      final sameClipper = SquircleClipper(
+        borderRadius: BorderRadius.circular(16.0),
+        smoothing: 0.6,
+      );
+      expect(clipper.shouldReclip(sameClipper), isFalse);
+
+      final diffClipper = SquircleClipper(
+        borderRadius: BorderRadius.circular(24.0),
+        smoothing: 0.8,
+      );
+      expect(clipper.shouldReclip(diffClipper), isTrue);
+    });
+  });
+
+  group('LitchiScope 1-Pass Batching & Ambient Lighting', () {
+    testWidgets('LitchiScope coordinates batchBlur and disables child BackdropFilter', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiScope(
+              batchBlur: true,
+              lightAngle: 45.0,
+              cornerSmoothing: 0.8,
+              child: LitchiGlass(
+                child: const Text('Batched Glass Child'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Batched Glass Child'), findsOneWidget);
+      // Under batchBlur: true, child does NOT spawn an independent BackdropFilter, saving GPU passes
+      expect(find.byType(BackdropFilter), findsNothing);
+    });
+  });
+
   group('LitchiGlass widget with Figma properties', () {
     testWidgets('renders child content with Figma factory', (tester) async {
       await tester.pumpWidget(
@@ -65,7 +133,7 @@ void main() {
   });
 
   group('LitchiCard widget with fromFigma factory', () {
-    testWidgets('renders and handles tap with Figma properties', (tester) async {
+    testWidgets('renders and handles tap with tactile spring feedback', (tester) async {
       var tapped = false;
 
       await tester.pumpWidget(
@@ -79,6 +147,7 @@ void main() {
               dispersion: 25.0,
               frost: 25.0,
               splay: 40.0,
+              cornerSmoothing: 0.6,
               onTap: () => tapped = true,
               child: const Text('Figma Card Tap'),
             ),
@@ -110,6 +179,7 @@ void main() {
                 dispersion: 20.0,
                 frost: 20.0,
                 splay: 40.0,
+                cornerSmoothing: 0.6,
                 onPressed: () => pressed = true,
                 child: const Text('Figma Button'),
               ),

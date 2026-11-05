@@ -5,7 +5,7 @@ import 'flavour.dart';
 import 'litchi_glass.dart';
 
 /// A tactile, dewy glass button with spring-driven press physics and specular sheen.
-/// Supports Figma Glass parameters.
+/// Supports Figma Glass parameters and Apple continuous corner squircle smoothing.
 class LitchiButton extends StatefulWidget {
   const LitchiButton({
     super.key,
@@ -13,6 +13,7 @@ class LitchiButton extends StatefulWidget {
     required this.child,
     this.flavour = LitchiFlavour.juicy,
     this.borderRadius = const BorderRadius.all(Radius.circular(16.0)),
+    this.cornerSmoothing = 0.6,
     this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 14.0),
     this.lightAngle,
     this.lightPercent,
@@ -37,6 +38,7 @@ class LitchiButton extends StatefulWidget {
     double dispersion = 20.0,
     double frost = 25.0,
     double splay = 40.0,
+    double cornerSmoothing = 0.6,
     BorderRadiusGeometry borderRadius =
         const BorderRadius.all(Radius.circular(16.0)),
     EdgeInsetsGeometry padding =
@@ -48,6 +50,7 @@ class LitchiButton extends StatefulWidget {
       key: key,
       onPressed: onPressed,
       borderRadius: borderRadius,
+      cornerSmoothing: cornerSmoothing,
       padding: padding,
       lightAngle: lightAngle,
       lightPercent: lightPercent,
@@ -73,6 +76,9 @@ class LitchiButton extends StatefulWidget {
 
   /// Corner radius for the button.
   final BorderRadiusGeometry borderRadius;
+
+  /// Apple continuous curvature squircle factor (0.0 to 1.0, default: 0.6).
+  final double cornerSmoothing;
 
   /// Inner padding.
   final EdgeInsetsGeometry padding;
@@ -185,6 +191,7 @@ class _LitchiButtonState extends State<LitchiButton>
         child: LitchiGlass(
           flavour: effectiveFlavour,
           borderRadius: widget.borderRadius,
+          cornerSmoothing: widget.cornerSmoothing,
           padding: widget.padding,
           lightAngle: widget.lightAngle,
           lightPercent: widget.lightPercent,

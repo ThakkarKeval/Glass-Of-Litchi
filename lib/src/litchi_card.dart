@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import 'flavour.dart';
 import 'litchi_glass.dart';
 
-/// A drop-in, highly polished glass card component.
+/// A drop-in, highly polished glass card component with Apple squircle curvature
+/// and spring-driven tactile touch-flex physics.
 ///
 /// Supports direct 1:1 mapping with Figma Glass effect parameters:
-/// [lightAngle], [lightPercent], [refraction], [depth], [dispersion], [frost], [splay].
+/// [lightAngle], [lightPercent], [refraction], [depth], [dispersion], [frost], [splay], [cornerSmoothing].
 class LitchiCard extends StatefulWidget {
   const LitchiCard({
     super.key,
     required this.child,
     this.flavour = LitchiFlavour.dewy,
     this.borderRadius = const BorderRadius.all(Radius.circular(24.0)),
+    this.cornerSmoothing = 0.6,
     this.padding = const EdgeInsets.all(20.0),
     this.margin,
     this.width,
@@ -46,6 +48,7 @@ class LitchiCard extends StatefulWidget {
     double dispersion = 20.0,
     double frost = 25.0,
     double splay = 40.0,
+    double cornerSmoothing = 0.6,
     Color tintColor = const Color(0x1AFFFFFF),
     BorderRadiusGeometry borderRadius =
         const BorderRadius.all(Radius.circular(24.0)),
@@ -61,6 +64,7 @@ class LitchiCard extends StatefulWidget {
     return LitchiCard(
       key: key,
       borderRadius: borderRadius,
+      cornerSmoothing: cornerSmoothing,
       padding: padding,
       margin: margin,
       width: width,
@@ -90,6 +94,9 @@ class LitchiCard extends StatefulWidget {
 
   /// Corner radius of the card.
   final BorderRadiusGeometry borderRadius;
+
+  /// Apple continuous curvature squircle smoothing factor (0.0 to 1.0, default: 0.6).
+  final double cornerSmoothing;
 
   /// Inner padding for the content.
   final EdgeInsetsGeometry padding;
@@ -145,7 +152,7 @@ class LitchiCard extends StatefulWidget {
   /// Custom shadow color. Defaults to a subtle ambient glow derived from the tint.
   final Color? shadowColor;
 
-  /// Whether to play a subtle press-down spring animation on tap.
+  /// Whether to play tactile spring touch-flex physics and tilt on press.
   final bool enableInteractiveFeedback;
 
   /// Whether backdrop blur is enabled.
@@ -158,18 +165,22 @@ class LitchiCard extends StatefulWidget {
 class _LitchiCardState extends State<LitchiCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late Animation<double> _springAnimation;
+  Offset _touchLocalPosition = Offset.zero;
+  Size _cardSize = Size.zero;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
-      reverseDuration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 320),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    _springAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeOutBack,
     );
   }
 
@@ -181,6 +192,13 @@ class _LitchiCardState extends State<LitchiCard>
 
   void _handleTapDown(TapDownDetails details) {
     if (widget.onTap != null && widget.enableInteractiveFeedback) {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox != null && renderBox.hasSize) {
+        _cardSize = renderBox.size;
+      }
+      setState(() {
+        _touchLocalPosition = details.localPosition;
+      });
       _controller.forward();
     }
   }
@@ -216,7 +234,7 @@ class _LitchiCardState extends State<LitchiCard>
       shadowDir.y * (effectiveElevation * 0.55),
     );
 
-    Widget card = Container(
+    final innerCard = Container(
       decoration: effectiveElevation > 0
           ? BoxDecoration(
               borderRadius: widget.borderRadius,
@@ -233,6 +251,7 @@ class _LitchiCardState extends State<LitchiCard>
       child: LitchiGlass(
         flavour: widget.flavour,
         borderRadius: widget.borderRadius,
+        cornerSmoothing: widget.cornerSmoothing,
         width: widget.width,
         height: widget.height,
         padding: widget.padding,
@@ -252,6 +271,8 @@ class _LitchiCardState extends State<LitchiCard>
       ),
     );
 
+    Widget card = innerCard;
+
     if (widget.onTap != null) {
       card = GestureDetector(
         onTapDown: _handleTapDown,
@@ -260,12 +281,43 @@ class _LitchiCardState extends State<LitchiCard>
         onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) => Transform.scale(
-            scale: widget.enableInteractiveFeedback ? _scaleAnimation.value : 1.0,
-            child: child,
-          ),
-          child: card,
+          animation: _springAnimation,
+          builder: (context, child) {
+            if (!widget.enableInteractiveFeedback) return child!;
+
+            final t = _springAnimation.value;
+            final cardWidth = _cardSize.width > 0
+                ? _cardSize.width
+                : (widget.width ?? 300.0);
+            final cardHeight = _cardSize.height > 0
+                ? _cardSize.height
+                : (widget.height ?? 160.0);
+
+            // Compute normalized relative touch position (-1.0 to 1.0)
+            final nx = cardWidth > 0
+                ? ((_touchLocalPosition.dx / cardWidth) * 2.0 - 1.0)
+                    .clamp(-1.0, 1.0)
+                : 0.0;
+            final ny = cardHeight > 0
+                ? ((_touchLocalPosition.dy / cardHeight) * 2.0 - 1.0)
+                    .clamp(-1.0, 1.0)
+                : 0.0;
+
+            final s = 1.0 - (0.02 * t);
+            // Subtle 3D perspective touch flex tilt
+            final transform = Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateX(-ny * 0.04 * t)
+              ..rotateY(nx * 0.04 * t)
+              ..scaleByDouble(s, s, 1.0, 1.0);
+
+            return Transform(
+              transform: transform,
+              alignment: Alignment.center,
+              child: child,
+            );
+          },
+          child: innerCard,
         ),
       );
     }

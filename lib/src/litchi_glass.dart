@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'flavour.dart';
+import 'litchi_scope.dart';
+import 'squircle.dart';
 
 /// The core primitive widget for the **Glass of Litchi** UI design system.
 ///
@@ -13,12 +15,14 @@ import 'flavour.dart';
 /// - [dispersion]: Chromatic aberration / rainbow prismatic rim (0% to 100%)
 /// - [frost]: Matte blur diffusion / roughness (0% to 100%)
 /// - [splay]: Specular highlight spread along the rim (0% to 100%)
+/// - [cornerSmoothing]: Apple iOS/visionOS continuous squircle curvature (0.0 to 1.0, default: 0.6)
 class LitchiGlass extends StatelessWidget {
   const LitchiGlass({
     super.key,
     required this.child,
     this.flavour = LitchiFlavour.dewy,
     this.borderRadius = const BorderRadius.all(Radius.circular(24.0)),
+    this.cornerSmoothing = 0.6,
     this.width,
     this.height,
     this.padding,
@@ -51,6 +55,7 @@ class LitchiGlass extends StatelessWidget {
     double dispersion = 20.0,
     double frost = 25.0,
     double splay = 40.0,
+    double cornerSmoothing = 0.6,
     Color tintColor = const Color(0x1AFFFFFF),
     BorderRadiusGeometry borderRadius =
         const BorderRadius.all(Radius.circular(24.0)),
@@ -64,6 +69,7 @@ class LitchiGlass extends StatelessWidget {
     return LitchiGlass(
       key: key,
       borderRadius: borderRadius,
+      cornerSmoothing: cornerSmoothing,
       width: width,
       height: height,
       padding: padding,
@@ -90,6 +96,9 @@ class LitchiGlass extends StatelessWidget {
 
   /// Corner radius of the glass panel. Defaults to 24px rounded corners.
   final BorderRadiusGeometry borderRadius;
+
+  /// Apple continuous curvature (squircle) smoothing factor (0.0 = standard RRect, 0.6 = iOS G2 continuity, 1.0 = superellipse).
+  final double? cornerSmoothing;
 
   /// Optional fixed width for the glass panel.
   final double? width;
@@ -151,17 +160,25 @@ class LitchiGlass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scope = LitchiScope.maybeOf(context);
+
     final effectiveFrost = frost ?? flavour.frost;
     final effectiveBlur =
         blur ?? (frost != null ? (effectiveFrost / 100.0 * 40.0) : flavour.blurSigma);
     final effectiveTint = tint ?? flavour.tintColor;
-    final effectiveAngle = lightAngle ?? flavour.lightAngle;
-    final effectiveLightPct = lightPercent ?? flavour.lightPercent;
+    final effectiveAngle = lightAngle ?? scope?.lightAngle ?? flavour.lightAngle;
+    final effectiveLightPct = lightPercent ?? scope?.lightPercent ?? flavour.lightPercent;
     final effectiveRefraction = refraction ?? flavour.refraction;
     final effectiveDepth = depth ?? flavour.depth;
-    final effectiveDispersion = dispersion ?? flavour.dispersion;
+    final effectiveDispersion = dispersion ?? scope?.dispersion ?? flavour.dispersion;
     final effectiveSplay = splay ?? flavour.splay;
     final effectiveBorderWidth = borderWidth ?? flavour.borderWidth;
+    final effectiveSmoothing =
+        (cornerSmoothing ?? scope?.cornerSmoothing ?? 0.6).clamp(0.0, 1.0);
+
+    // If scoped batch blur is active, child bypasses individual BackdropFilter to save GPU fill rate
+    final effectiveEnableBlur =
+        (scope?.batchBlur == true) ? false : enableBlur;
 
     final effectiveSpecular = specularOpacity ??
         (lightPercent != null
@@ -180,7 +197,9 @@ class LitchiGlass extends StatelessWidget {
     } else if (lightAngle != null ||
         lightPercent != null ||
         dispersion != null ||
-        splay != null) {
+        splay != null ||
+        scope?.lightAngle != null ||
+        scope?.dispersion != null) {
       effectiveBorderGradient = createSpecularBorderGradient(
         angle: effectiveAngle,
         lightPercent: effectiveLightPct,
@@ -198,6 +217,8 @@ class LitchiGlass extends StatelessWidget {
       );
     }
 
+    final resolvedRadius = borderRadius.resolve(Directionality.of(context));
+
     Widget content = Container(
       width: width,
       height: height,
@@ -211,27 +232,37 @@ class LitchiGlass extends StatelessWidget {
     // Apply inner ambient specular sheen aligned with the light angle
     if (flavour.innerSheen && effectiveSpecular > 0.0) {
       final (sheenBegin, sheenEnd) = alignmentPairFromDegrees(effectiveAngle);
+      final sheenWidget = DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: effectiveSmoothing == 0.0 ? borderRadius : null,
+          gradient: LinearGradient(
+            begin: sheenBegin,
+            end: sheenEnd,
+            stops: const [0.0, 0.45],
+            colors: [
+              Colors.white.withValues(
+                alpha: (effectiveSpecular * 0.25).clamp(0.0, 1.0),
+              ),
+              Colors.transparent,
+            ],
+          ),
+        ),
+      );
+
       content = Stack(
         fit: StackFit.passthrough,
         children: [
           Positioned.fill(
             child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  gradient: LinearGradient(
-                    begin: sheenBegin,
-                    end: sheenEnd,
-                    stops: const [0.0, 0.45],
-                    colors: [
-                      Colors.white.withValues(
-                        alpha: (effectiveSpecular * 0.25).clamp(0.0, 1.0),
+              child: effectiveSmoothing > 0.0
+                  ? ClipPath(
+                      clipper: SquircleClipper(
+                        borderRadius: resolvedRadius,
+                        smoothing: effectiveSmoothing,
                       ),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
+                      child: sheenWidget,
+                    )
+                  : sheenWidget,
             ),
           ),
           content,
@@ -241,37 +272,64 @@ class LitchiGlass extends StatelessWidget {
 
     Widget glassPanel;
 
-    if (enableBlur && effectiveBlur > 0.0) {
-      glassPanel = ClipRRect(
-        borderRadius: borderRadius,
-        clipBehavior: clipBehavior,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: effectiveBlur,
-            sigmaY: effectiveBlur,
-          ),
-          child: Container(
-            color: effectiveTint,
-            child: content,
-          ),
+    if (effectiveEnableBlur && effectiveBlur > 0.0) {
+      final blurWidget = BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: effectiveBlur,
+          sigmaY: effectiveBlur,
         ),
-      );
-    } else {
-      glassPanel = ClipRRect(
-        borderRadius: borderRadius,
-        clipBehavior: clipBehavior,
         child: Container(
-          color: flavour.fallbackColor,
+          color: effectiveTint,
           child: content,
         ),
       );
+
+      if (effectiveSmoothing > 0.0) {
+        glassPanel = ClipPath(
+          clipper: SquircleClipper(
+            borderRadius: resolvedRadius,
+            smoothing: effectiveSmoothing,
+          ),
+          clipBehavior: clipBehavior,
+          child: blurWidget,
+        );
+      } else {
+        glassPanel = ClipRRect(
+          borderRadius: borderRadius,
+          clipBehavior: clipBehavior,
+          child: blurWidget,
+        );
+      }
+    } else {
+      final solidWidget = Container(
+        color: (scope?.batchBlur == true) ? effectiveTint : flavour.fallbackColor,
+        child: content,
+      );
+
+      if (effectiveSmoothing > 0.0) {
+        glassPanel = ClipPath(
+          clipper: SquircleClipper(
+            borderRadius: resolvedRadius,
+            smoothing: effectiveSmoothing,
+          ),
+          clipBehavior: clipBehavior,
+          child: solidWidget,
+        );
+      } else {
+        glassPanel = ClipRRect(
+          borderRadius: borderRadius,
+          clipBehavior: clipBehavior,
+          child: solidWidget,
+        );
+      }
     }
 
     // Outer specular gradient border rim with refraction & depth bevels
     if (effectiveBorderGradient != null && effectiveBorderWidth > 0.0) {
       glassPanel = CustomPaint(
         foregroundPainter: _LitchiBorderPainter(
-          borderRadius: borderRadius.resolve(Directionality.of(context)),
+          borderRadius: resolvedRadius,
+          cornerSmoothing: effectiveSmoothing,
           gradient: effectiveBorderGradient,
           strokeWidth: effectiveBorderWidth,
           refraction: effectiveRefraction,
@@ -292,10 +350,11 @@ class LitchiGlass extends StatelessWidget {
 }
 
 /// Custom painter for seamless, high-fidelity gradient borders incorporating
-/// Figma optical parameters (refraction bevel and 3D depth shadow).
+/// Apple squircle continuous curvature and Figma optical parameters.
 class _LitchiBorderPainter extends CustomPainter {
   const _LitchiBorderPainter({
     required this.borderRadius,
+    this.cornerSmoothing = 0.6,
     required this.gradient,
     required this.strokeWidth,
     this.refraction = 0.0,
@@ -305,6 +364,7 @@ class _LitchiBorderPainter extends CustomPainter {
   });
 
   final BorderRadius borderRadius;
+  final double cornerSmoothing;
   final Gradient gradient;
   final double strokeWidth;
   final double refraction;
@@ -312,12 +372,22 @@ class _LitchiBorderPainter extends CustomPainter {
   final double lightAngle;
   final double specularOpacity;
 
+  BorderRadius _deflateRadius(BorderRadius br, double delta) {
+    return BorderRadius.only(
+      topLeft: Radius.circular((br.topLeft.x - delta).clamp(0.0, double.infinity)),
+      topRight: Radius.circular((br.topRight.x - delta).clamp(0.0, double.infinity)),
+      bottomRight: Radius.circular((br.bottomRight.x - delta).clamp(0.0, double.infinity)),
+      bottomLeft: Radius.circular((br.bottomLeft.x - delta).clamp(0.0, double.infinity)),
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     if (strokeWidth <= 0.0) return;
 
     final rect = Offset.zero & size;
-    final rrect = borderRadius.toRRect(rect).deflate(strokeWidth / 2.0);
+    final halfStroke = strokeWidth / 2.0;
+    final rimRect = rect.deflate(halfStroke);
 
     // 1. Primary Specular Rim
     final paint = Paint()
@@ -325,14 +395,23 @@ class _LitchiBorderPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..shader = gradient.createShader(rect);
 
-    canvas.drawRRect(rrect, paint);
+    if (cornerSmoothing > 0.0) {
+      final rimPath = SquirclePath.create(
+        rect: rimRect,
+        borderRadius: _deflateRadius(borderRadius, halfStroke),
+        smoothing: cornerSmoothing,
+      );
+      canvas.drawPath(rimPath, paint);
+    } else {
+      final rrect = borderRadius.toRRect(rect).deflate(halfStroke);
+      canvas.drawRRect(rrect, paint);
+    }
 
     // 2. Refraction Inner Bevel (simulates optical bending through glass thickness)
     if (refraction > 0.0) {
       final refractionOffset = strokeWidth + (refraction / 100.0) * 2.5;
-      if (rrect.width > refractionOffset * 2 &&
-          rrect.height > refractionOffset * 2) {
-        final innerRRect = rrect.deflate(refractionOffset);
+      if (rect.width > refractionOffset * 2 && rect.height > refractionOffset * 2) {
+        final innerRect = rect.deflate(refractionOffset);
         final (begin, end) = alignmentPairFromDegrees(lightAngle + 180.0);
         final refractionGradient = LinearGradient(
           begin: begin,
@@ -354,7 +433,17 @@ class _LitchiBorderPainter extends CustomPainter {
           ..strokeWidth = 0.8
           ..shader = refractionGradient.createShader(rect);
 
-        canvas.drawRRect(innerRRect, innerPaint);
+        if (cornerSmoothing > 0.0) {
+          final innerPath = SquirclePath.create(
+            rect: innerRect,
+            borderRadius: _deflateRadius(borderRadius, refractionOffset),
+            smoothing: cornerSmoothing,
+          );
+          canvas.drawPath(innerPath, innerPaint);
+        } else {
+          final innerRRect = borderRadius.toRRect(rect).deflate(refractionOffset);
+          canvas.drawRRect(innerRRect, innerPaint);
+        }
       }
     }
 
@@ -362,7 +451,7 @@ class _LitchiBorderPainter extends CustomPainter {
     if (depth > 0.0) {
       final (shadowBegin, _) = alignmentPairFromDegrees(lightAngle + 180.0);
       final depthOffset = (depth / 50.0 * 2.0).clamp(0.5, 2.5);
-      final depthRRect = rrect.deflate(depthOffset);
+      final depthRect = rect.deflate(depthOffset);
 
       final depthPaint = Paint()
         ..style = PaintingStyle.stroke
@@ -380,13 +469,24 @@ class _LitchiBorderPainter extends CustomPainter {
           ],
         ).createShader(rect);
 
-      canvas.drawRRect(depthRRect, depthPaint);
+      if (cornerSmoothing > 0.0) {
+        final depthPath = SquirclePath.create(
+          rect: depthRect,
+          borderRadius: _deflateRadius(borderRadius, depthOffset),
+          smoothing: cornerSmoothing,
+        );
+        canvas.drawPath(depthPath, depthPaint);
+      } else {
+        final depthRRect = borderRadius.toRRect(rect).deflate(depthOffset);
+        canvas.drawRRect(depthRRect, depthPaint);
+      }
     }
   }
 
   @override
   bool shouldRepaint(covariant _LitchiBorderPainter oldDelegate) {
     return oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.cornerSmoothing != cornerSmoothing ||
         oldDelegate.gradient != gradient ||
         oldDelegate.strokeWidth != strokeWidth ||
         oldDelegate.refraction != refraction ||
