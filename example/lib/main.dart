@@ -1,8 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
+import 'glass_list_screen.dart';
+
 void main() {
   runApp(const GlassOfLitchiDemoApp());
+}
+
+/// Custom ScrollBehavior that completely removes iOS bounce, Android stretch overscroll,
+/// and overscroll indicators across all platforms, preventing backdrop filter flicker.
+class NoBounceScrollBehavior extends ScrollBehavior {
+  const NoBounceScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const ClampingScrollPhysics();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
 }
 
 class GlassOfLitchiDemoApp extends StatelessWidget {
@@ -11,14 +32,113 @@ class GlassOfLitchiDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Glass of Litchi - Figma Glass Inspector',
+      title: 'Glass of Litchi Demo',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const NoBounceScrollBehavior(),
       theme: ThemeData(
         brightness: Brightness.dark,
         colorSchemeSeed: const Color(0xFFFF537A),
         useMaterial3: true,
       ),
-      home: const LitchiShowcaseScreen(),
+      home: const MainTabScreen(),
+    );
+  }
+}
+
+class MainTabScreen extends StatefulWidget {
+  const MainTabScreen({super.key});
+
+  @override
+  State<MainTabScreen> createState() => _MainTabScreenState();
+}
+
+class _MainTabScreenState extends State<MainTabScreen> {
+  int _currentTab = 1; // Default to Glass List screen as requested
+
+  final List<Widget> _screens = const [
+    LitchiShowcaseScreen(),
+    GlassListScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      body: IndexedStack(
+        index: _currentTab,
+        children: _screens,
+      ),
+      // Floating Glass Bottom Navigation Bar
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 12.0),
+          child: LitchiGlass(
+            flavour: LitchiFlavour.dewy,
+            borderRadius: BorderRadius.circular(32.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  index: 1,
+                  icon: Icons.view_agenda_rounded,
+                  label: 'Glass List',
+                ),
+                _buildNavItem(
+                  index: 0,
+                  icon: Icons.tune_rounded,
+                  label: 'Figma Inspector',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _currentTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentTab = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(24.0),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 1.0,
+                ),
+              )
+            : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20.0,
+              color: isSelected ? Colors.white : Colors.white60,
+            ),
+            const SizedBox(width: 8.0),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.0,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : Colors.white60,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -68,6 +188,26 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
     });
   }
 
+  void _resetSettings() {
+    setState(() {
+      _selectedFlavour = LitchiFlavour.juicy;
+      _lightAngle = 135.0;
+      _lightPercent = 85.0;
+      _refraction = 25.0;
+      _depth = 10.0;
+      _dispersion = 35.0;
+      _frost = 26.0;
+      _splay = 50.0;
+      _enableBlur = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Settings reset to defaults! ✨'),
+        duration: Duration(milliseconds: 900),
+      ),
+    );
+  }
+
   String _getAngleLabel(double angle) {
     final norm = (angle % 360 + 360) % 360;
     if (norm >= 115 && norm <= 155) return 'Top-Left ↘ Bottom-Right';
@@ -86,49 +226,56 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Vibrant organic fruit mesh background
+          // Sophisticated luxury dark ambient background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF2A0818),
-                  Color(0xFF5A1030),
-                  Color(0xFFFF3366),
-                  Color(0xFFFF8E53),
-                  Color(0xFF1B072B),
+                  Color(0xFF0F0B13),
+                  Color(0xFF140D1C),
+                  Color(0xFF191124),
+                  Color(0xFF0D0A12),
                 ],
-                stops: [0.0, 0.25, 0.55, 0.8, 1.0],
+                stops: [0.0, 0.35, 0.70, 1.0],
               ),
             ),
           ),
 
-          // Floating glowing neon fruit orbs for live refraction testing
+          // Soft elegant ambient light blooms (luxurious, non-clashing)
           Positioned(
-            top: 100,
-            left: -40,
+            top: 60,
+            left: -30,
             child: Container(
-              width: 220,
-              height: 220,
+              width: 320,
+              height: 320,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0xFFFF5E97), Colors.transparent],
+                  colors: [
+                    Color(0x66B0305C), // Warm dusty litchi rose glow
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.75],
                 ),
               ),
             ),
           ),
           Positioned(
-            bottom: 140,
+            bottom: 120,
             right: -50,
             child: Container(
-              width: 260,
-              height: 260,
+              width: 340,
+              height: 340,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0xFFFFB300), Colors.transparent],
+                  colors: [
+                    Color(0x55994A2D), // Warm soft amber peach bloom
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.75],
                 ),
               ),
             ),
@@ -136,8 +283,19 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
 
           // Main interactive content
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                physics: const ClampingScrollPhysics(),
+                overscroll: false,
+              ),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 16.0,
+                bottom: 80.0, // Room for bottom nav bar
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -170,6 +328,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                   // Flavour selector chips
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
                     child: Row(
                       children: _flavours.map((flavour) {
                         final isSelected = _selectedFlavour.name == flavour.name;
@@ -314,17 +473,47 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            const Text(
                               '🎨 Figma Glass Inspector',
                               style: TextStyle(
                                 fontSize: 18.0,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Icon(Icons.tune, size: 20.0, color: Colors.white70),
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0,
+                                  vertical: 4.0,
+                                ),
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  side: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                  ),
+                                ),
+                              ),
+                              onPressed: _resetSettings,
+                              icon: const Icon(
+                                Icons.restart_alt_rounded,
+                                size: 16.0,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Reset',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16.0),
@@ -462,10 +651,11 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildSliderRow({
     required String label,
