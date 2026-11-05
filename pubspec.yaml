@@ -1,0 +1,28 @@
+name: glass_of_litchi
+description: "A dewy, organic glassmorphism and liquid glass UI kit for Flutter featuring juicy fruit-toned presets, tactile highlights, and zero-setup components."
+version: 0.0.1
+homepage: https://github.com/cavernlabs/glass_of_litchi
+repository: https://github.com/cavernlabs/glass_of_litchi
+issue_tracker: https://github.com/cavernlabs/glass_of_litchi/issues
+
+topics:
+  - glassmorphism
+  - ui
+  - design-system
+  - blur
+  - liquid-glass
+
+environment:
+  sdk: ^3.13.7
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
