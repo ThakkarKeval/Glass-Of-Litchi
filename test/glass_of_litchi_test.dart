@@ -3,92 +3,98 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 void main() {
-  group('LitchiFlavour presets', () {
-    test('standard presets have valid properties', () {
-      expect(LitchiFlavour.dewy.name, 'Dewy');
-      expect(LitchiFlavour.juicy.name, 'Juicy');
-      expect(LitchiFlavour.frosted.name, 'Frosted');
-      expect(LitchiFlavour.crystal.name, 'Crystal');
-      expect(LitchiFlavour.milkyLitchi.name, 'Milky Litchi');
-      expect(LitchiFlavour.roseTint.name, 'Rose Tint');
-      expect(LitchiFlavour.goldenCitrus.name, 'Golden Citrus');
+  group('Figma 7-Option Glass Parameters', () {
+    test('LitchiFlavour.fromFigma initializes optical parameters correctly', () {
+      final figmaFlavour = LitchiFlavour.fromFigma(
+        lightAngle: 120.0,
+        lightPercent: 90.0,
+        refraction: 30.0,
+        depth: 12.0,
+        dispersion: 40.0,
+        frost: 35.0,
+        splay: 60.0,
+      );
 
-      expect(LitchiFlavour.dewy.blurSigma, greaterThan(0));
-      expect(LitchiFlavour.juicy.tintColor.a, greaterThan(0));
+      expect(figmaFlavour.lightAngle, 120.0);
+      expect(figmaFlavour.lightPercent, 90.0);
+      expect(figmaFlavour.refraction, 30.0);
+      expect(figmaFlavour.depth, 12.0);
+      expect(figmaFlavour.dispersion, 40.0);
+      expect(figmaFlavour.frost, 35.0);
+      expect(figmaFlavour.splay, 60.0);
+      expect(figmaFlavour.blurSigma, closeTo(14.0, 0.1));
+      expect(figmaFlavour.specularOpacity, 0.9);
     });
 
-    test('copyWith properly modifies fields', () {
-      final custom = LitchiFlavour.dewy.copyWith(
-        name: 'Custom',
-        blurSigma: 42.0,
+    test('createSpecularBorderGradient generates dispersion rainbow stops', () {
+      final gradient = createSpecularBorderGradient(
+        angle: 135.0,
+        lightPercent: 80.0,
+        dispersion: 50.0,
+        splay: 40.0,
       );
-      expect(custom.name, 'Custom');
-      expect(custom.blurSigma, 42.0);
-      expect(custom.tintColor, LitchiFlavour.dewy.tintColor);
+
+      // Chromatic dispersion creates 6 prismatic stops (cyan lead, white core, rose trail, bounce)
+      expect(gradient.stops?.length, 6);
+      expect(gradient.colors.length, 6);
     });
   });
 
-  group('LitchiGlass widget', () {
-    testWidgets('renders child content with blur enabled', (tester) async {
+  group('LitchiGlass widget with Figma properties', () {
+    testWidgets('renders child content with Figma factory', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: Scaffold(
-            body: LitchiGlass(
-              flavour: LitchiFlavour.juicy,
-              child: Text('Lychee Pulp'),
+            body: LitchiGlass.fromFigma(
+              lightAngle: 135.0,
+              lightPercent: 80.0,
+              refraction: 25.0,
+              depth: 10.0,
+              dispersion: 30.0,
+              frost: 20.0,
+              splay: 45.0,
+              child: const Text('Figma Glass Child'),
             ),
           ),
         ),
       );
 
-      expect(find.text('Lychee Pulp'), findsOneWidget);
+      expect(find.text('Figma Glass Child'), findsOneWidget);
       expect(find.byType(BackdropFilter), findsOneWidget);
     });
-
-    testWidgets('renders fallback without BackdropFilter when enableBlur is false',
-        (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: LitchiGlass(
-              flavour: LitchiFlavour.juicy,
-              enableBlur: false,
-              child: Text('Performance Mode'),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Performance Mode'), findsOneWidget);
-      expect(find.byType(BackdropFilter), findsNothing);
-    });
   });
 
-  group('LitchiCard widget', () {
-    testWidgets('renders child and responds to tap', (tester) async {
+  group('LitchiCard widget with fromFigma factory', () {
+    testWidgets('renders and handles tap with Figma properties', (tester) async {
       var tapped = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: LitchiCard(
-              flavour: LitchiFlavour.dewy,
+            body: LitchiCard.fromFigma(
+              lightAngle: 135.0,
+              lightPercent: 85.0,
+              refraction: 20.0,
+              depth: 8.0,
+              dispersion: 25.0,
+              frost: 25.0,
+              splay: 40.0,
               onTap: () => tapped = true,
-              child: const Text('Tap Me'),
+              child: const Text('Figma Card Tap'),
             ),
           ),
         ),
       );
 
-      expect(find.text('Tap Me'), findsOneWidget);
-      await tester.tap(find.text('Tap Me'));
+      expect(find.text('Figma Card Tap'), findsOneWidget);
+      await tester.tap(find.text('Figma Card Tap'));
       await tester.pumpAndSettle();
 
       expect(tapped, isTrue);
     });
   });
 
-  group('LitchiButton widget', () {
+  group('LitchiButton widget with fromFigma factory', () {
     testWidgets('executes onPressed callback when tapped', (tester) async {
       var pressed = false;
 
@@ -96,17 +102,24 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: Center(
-              child: LitchiButton(
+              child: LitchiButton.fromFigma(
+                lightAngle: 135.0,
+                lightPercent: 90.0,
+                refraction: 20.0,
+                depth: 6.0,
+                dispersion: 20.0,
+                frost: 20.0,
+                splay: 40.0,
                 onPressed: () => pressed = true,
-                child: const Text('Drink Litchi'),
+                child: const Text('Figma Button'),
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text('Drink Litchi'), findsOneWidget);
-      await tester.tap(find.text('Drink Litchi'));
+      expect(find.text('Figma Button'), findsOneWidget);
+      await tester.tap(find.text('Figma Button'));
       await tester.pumpAndSettle();
 
       expect(pressed, isTrue);

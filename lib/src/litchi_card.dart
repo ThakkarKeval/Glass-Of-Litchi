@@ -5,8 +5,8 @@ import 'litchi_glass.dart';
 
 /// A drop-in, highly polished glass card component.
 ///
-/// Provides ambient fruit-toned drop shadows, smooth interactive tap physics,
-/// and dewy glass surfaces straight out of the box.
+/// Supports direct 1:1 mapping with Figma Glass effect parameters:
+/// [lightAngle], [lightPercent], [refraction], [depth], [dispersion], [frost], [splay].
 class LitchiCard extends StatefulWidget {
   const LitchiCard({
     super.key,
@@ -19,12 +19,68 @@ class LitchiCard extends StatefulWidget {
     this.height,
     this.blur,
     this.tint,
+    this.lightAngle,
+    this.lightPercent,
+    this.refraction,
+    this.depth,
+    this.dispersion,
+    this.frost,
+    this.splay,
+    this.specularOpacity,
+    this.secondarySpecularOpacity,
     this.onTap,
     this.elevation = 8.0,
     this.shadowColor,
     this.enableInteractiveFeedback = true,
     this.enableBlur = true,
   });
+
+  /// Factory constructor to instantiate a [LitchiCard] directly from Figma Glass effect properties.
+  factory LitchiCard.fromFigma({
+    Key? key,
+    required Widget child,
+    double lightAngle = 135.0,
+    double lightPercent = 75.0,
+    double refraction = 20.0,
+    double depth = 8.0,
+    double dispersion = 20.0,
+    double frost = 25.0,
+    double splay = 40.0,
+    Color tintColor = const Color(0x1AFFFFFF),
+    BorderRadiusGeometry borderRadius =
+        const BorderRadius.all(Radius.circular(24.0)),
+    EdgeInsetsGeometry padding = const EdgeInsets.all(20.0),
+    EdgeInsetsGeometry? margin,
+    double? width,
+    double? height,
+    VoidCallback? onTap,
+    Color? shadowColor,
+    bool enableInteractiveFeedback = true,
+    bool enableBlur = true,
+  }) {
+    return LitchiCard(
+      key: key,
+      borderRadius: borderRadius,
+      padding: padding,
+      margin: margin,
+      width: width,
+      height: height,
+      lightAngle: lightAngle,
+      lightPercent: lightPercent,
+      refraction: refraction,
+      depth: depth,
+      dispersion: dispersion,
+      frost: frost,
+      splay: splay,
+      tint: tintColor,
+      elevation: depth * 1.2,
+      onTap: onTap,
+      shadowColor: shadowColor,
+      enableInteractiveFeedback: enableInteractiveFeedback,
+      enableBlur: enableBlur,
+      child: child,
+    );
+  }
 
   /// The content displayed inside the card.
   final Widget child;
@@ -47,11 +103,38 @@ class LitchiCard extends StatefulWidget {
   /// Fixed height for the card.
   final double? height;
 
-  /// Optional override for the blur sigma.
+  /// Optional override for the blur sigma in pixels (if set, overrides [frost]).
   final double? blur;
 
   /// Optional override for the tint color.
   final Color? tint;
+
+  /// Direction of primary key light in degrees (0° to 360°, default: 135.0).
+  final double? lightAngle;
+
+  /// Specular peak brightness percentage (0% to 100%).
+  final double? lightPercent;
+
+  /// Optical bending index at the rim (0% to 100%).
+  final double? refraction;
+
+  /// 3D slab thickness and elevation depth (0 to 50 px).
+  final double? depth;
+
+  /// Chromatic aberration / rainbow prismatic rim intensity (0% to 100%).
+  final double? dispersion;
+
+  /// Matte diffusion / surface roughness (0% to 100%).
+  final double? frost;
+
+  /// Angular spread of the specular highlight along the perimeter (0% to 100%).
+  final double? splay;
+
+  /// Optional override for the primary specular highlight opacity.
+  final double? specularOpacity;
+
+  /// Optional override for the secondary bounce specular highlight opacity.
+  final double? secondarySpecularOpacity;
 
   /// Optional tap callback. If provided, the card becomes interactive.
   final VoidCallback? onTap;
@@ -116,20 +199,32 @@ class _LitchiCardState extends State<LitchiCard>
 
   @override
   Widget build(BuildContext context) {
+    final effectiveAngle = widget.lightAngle ?? widget.flavour.lightAngle;
+    final effectiveDepth = widget.depth ?? widget.flavour.depth;
+    final effectiveElevation =
+        widget.elevation > 0 ? widget.elevation : (effectiveDepth * 1.2);
+
     final effectiveShadowColor = widget.shadowColor ??
         widget.flavour.tintColor.withValues(
-          alpha: (widget.flavour.tintColor.a * 0.7).clamp(0.04, 0.25),
+          alpha: (widget.flavour.tintColor.a * 0.75).clamp(0.04, 0.28),
         );
 
+    // Directional shadow cast opposite to the light source
+    final (shadowDir, _) = alignmentPairFromDegrees(effectiveAngle + 180.0);
+    final shadowOffset = Offset(
+      shadowDir.x * (effectiveElevation * 0.45),
+      shadowDir.y * (effectiveElevation * 0.55),
+    );
+
     Widget card = Container(
-      decoration: widget.elevation > 0
+      decoration: effectiveElevation > 0
           ? BoxDecoration(
               borderRadius: widget.borderRadius,
               boxShadow: [
                 BoxShadow(
                   color: effectiveShadowColor,
-                  blurRadius: widget.elevation * 2.0,
-                  offset: Offset(0, widget.elevation * 0.5),
+                  blurRadius: effectiveElevation * 2.2,
+                  offset: shadowOffset,
                   spreadRadius: -2.0,
                 ),
               ],
@@ -143,6 +238,15 @@ class _LitchiCardState extends State<LitchiCard>
         padding: widget.padding,
         blur: widget.blur,
         tint: widget.tint,
+        lightAngle: widget.lightAngle,
+        lightPercent: widget.lightPercent,
+        refraction: widget.refraction,
+        depth: widget.depth,
+        dispersion: widget.dispersion,
+        frost: widget.frost,
+        splay: widget.splay,
+        specularOpacity: widget.specularOpacity,
+        secondarySpecularOpacity: widget.secondarySpecularOpacity,
         enableBlur: widget.enableBlur,
         child: widget.child,
       ),

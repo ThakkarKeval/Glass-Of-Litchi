@@ -5,9 +5,14 @@ import 'flavour.dart';
 
 /// The core primitive widget for the **Glass of Litchi** UI design system.
 ///
-/// Combines hardware-accelerated Gaussian backdrop filtering, multi-stop
-/// specular rim gradients, an inner ambient light sheen, and organic fruit-toned
-/// tinting into a single, high-performance widget.
+/// Supports direct 1:1 mapping with Figma Glass effect parameters:
+/// - [lightAngle]: Direction of incident light (0° to 360°)
+/// - [lightPercent]: Specular peak brightness (0% to 100%)
+/// - [refraction]: Optical inner bevel index (0% to 100%)
+/// - [depth]: 3D slab thickness and elevation shadow (0 to 50 px)
+/// - [dispersion]: Chromatic aberration / rainbow prismatic rim (0% to 100%)
+/// - [frost]: Matte blur diffusion / roughness (0% to 100%)
+/// - [splay]: Specular highlight spread along the rim (0% to 100%)
 class LitchiGlass extends StatelessWidget {
   const LitchiGlass({
     super.key,
@@ -20,11 +25,62 @@ class LitchiGlass extends StatelessWidget {
     this.margin,
     this.blur,
     this.tint,
+    this.lightAngle,
+    this.lightPercent,
+    this.refraction,
+    this.depth,
+    this.dispersion,
+    this.frost,
+    this.splay,
     this.borderGradient,
     this.borderWidth,
+    this.specularOpacity,
+    this.secondarySpecularOpacity,
     this.enableBlur = true,
     this.clipBehavior = Clip.antiAlias,
   });
+
+  /// Factory constructor to instantiate directly from Figma Glass effect properties.
+  factory LitchiGlass.fromFigma({
+    Key? key,
+    required Widget child,
+    double lightAngle = 135.0,
+    double lightPercent = 75.0,
+    double refraction = 20.0,
+    double depth = 8.0,
+    double dispersion = 20.0,
+    double frost = 25.0,
+    double splay = 40.0,
+    Color tintColor = const Color(0x1AFFFFFF),
+    BorderRadiusGeometry borderRadius =
+        const BorderRadius.all(Radius.circular(24.0)),
+    double? width,
+    double? height,
+    EdgeInsetsGeometry? padding,
+    EdgeInsetsGeometry? margin,
+    double borderWidth = 1.2,
+    bool enableBlur = true,
+  }) {
+    return LitchiGlass(
+      key: key,
+      borderRadius: borderRadius,
+      width: width,
+      height: height,
+      padding: padding,
+      margin: margin,
+      lightAngle: lightAngle,
+      lightPercent: lightPercent,
+      refraction: refraction,
+      depth: depth,
+      dispersion: dispersion,
+      frost: frost,
+      splay: splay,
+      tint: tintColor,
+      borderWidth: borderWidth,
+      enableBlur: enableBlur,
+      child: child,
+    );
+  }
 
   /// The widget positioned inside the glass container.
   final Widget child;
@@ -47,17 +103,44 @@ class LitchiGlass extends StatelessWidget {
   /// Outer margin surrounding the glass panel.
   final EdgeInsetsGeometry? margin;
 
-  /// Optional override for the blur sigma specified in [flavour].
+  /// Optional override for the blur sigma in pixels (if set, overrides [frost]).
   final double? blur;
 
   /// Optional override for the tint color specified in [flavour].
   final Color? tint;
+
+  /// Direction of primary key light in degrees (0° to 360°, default: 135.0).
+  final double? lightAngle;
+
+  /// Specular peak brightness percentage (0% to 100%).
+  final double? lightPercent;
+
+  /// Optical bending index at the rim (0% to 100%).
+  final double? refraction;
+
+  /// 3D slab thickness and elevation depth (0 to 50 px).
+  final double? depth;
+
+  /// Chromatic aberration / rainbow prismatic rim intensity (0% to 100%).
+  final double? dispersion;
+
+  /// Matte diffusion / surface roughness (0% to 100%).
+  final double? frost;
+
+  /// Angular spread of the specular highlight along the perimeter (0% to 100%).
+  final double? splay;
 
   /// Optional override for the border rim gradient.
   final Gradient? borderGradient;
 
   /// Optional override for the rim border thickness.
   final double? borderWidth;
+
+  /// Optional override for the primary specular highlight opacity at the incident rim.
+  final double? specularOpacity;
+
+  /// Optional override for the secondary bounce specular highlight opacity.
+  final double? secondarySpecularOpacity;
 
   /// Whether backdrop blur is active. If set to `false`, a graceful opaque
   /// [LitchiFlavour.fallbackColor] is used instead to guarantee maximum FPS.
@@ -68,10 +151,52 @@ class LitchiGlass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBlur = blur ?? flavour.blurSigma;
+    final effectiveFrost = frost ?? flavour.frost;
+    final effectiveBlur =
+        blur ?? (frost != null ? (effectiveFrost / 100.0 * 40.0) : flavour.blurSigma);
     final effectiveTint = tint ?? flavour.tintColor;
-    final effectiveBorderGradient = borderGradient ?? flavour.borderGradient;
+    final effectiveAngle = lightAngle ?? flavour.lightAngle;
+    final effectiveLightPct = lightPercent ?? flavour.lightPercent;
+    final effectiveRefraction = refraction ?? flavour.refraction;
+    final effectiveDepth = depth ?? flavour.depth;
+    final effectiveDispersion = dispersion ?? flavour.dispersion;
+    final effectiveSplay = splay ?? flavour.splay;
     final effectiveBorderWidth = borderWidth ?? flavour.borderWidth;
+
+    final effectiveSpecular = specularOpacity ??
+        (lightPercent != null
+            ? (effectiveLightPct / 100.0).clamp(0.0, 1.0)
+            : flavour.specularOpacity);
+
+    final effectiveSecSpecular = secondarySpecularOpacity ??
+        (lightPercent != null
+            ? (effectiveSpecular * 0.48).clamp(0.0, 1.0)
+            : flavour.secondarySpecularOpacity);
+
+    // Resolve border gradient: if custom gradient or figma options set, resolve dynamically
+    final Gradient? effectiveBorderGradient;
+    if (borderGradient != null) {
+      effectiveBorderGradient = borderGradient;
+    } else if (lightAngle != null ||
+        lightPercent != null ||
+        dispersion != null ||
+        splay != null) {
+      effectiveBorderGradient = createSpecularBorderGradient(
+        angle: effectiveAngle,
+        lightPercent: effectiveLightPct,
+        dispersion: effectiveDispersion,
+        splay: effectiveSplay,
+        primaryOpacity: effectiveSpecular,
+        secondaryOpacity: effectiveSecSpecular,
+      );
+    } else {
+      effectiveBorderGradient = flavour.resolveBorderGradient(
+        angle: effectiveAngle,
+        lightPct: effectiveLightPct,
+        disp: effectiveDispersion,
+        sply: effectiveSplay,
+      );
+    }
 
     Widget content = Container(
       width: width,
@@ -83,8 +208,9 @@ class LitchiGlass extends StatelessWidget {
       ),
     );
 
-    // Apply inner ambient specular sheen if enabled
-    if (flavour.innerSheen && flavour.specularOpacity > 0.0) {
+    // Apply inner ambient specular sheen aligned with the light angle
+    if (flavour.innerSheen && effectiveSpecular > 0.0) {
+      final (sheenBegin, sheenEnd) = alignmentPairFromDegrees(effectiveAngle);
       content = Stack(
         fit: StackFit.passthrough,
         children: [
@@ -94,12 +220,12 @@ class LitchiGlass extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: borderRadius,
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    begin: sheenBegin,
+                    end: sheenEnd,
                     stops: const [0.0, 0.45],
                     colors: [
                       Colors.white.withValues(
-                        alpha: (flavour.specularOpacity * 0.25).clamp(0.0, 1.0),
+                        alpha: (effectiveSpecular * 0.25).clamp(0.0, 1.0),
                       ),
                       Colors.transparent,
                     ],
@@ -141,13 +267,17 @@ class LitchiGlass extends StatelessWidget {
       );
     }
 
-    // Outer specular gradient border rim
+    // Outer specular gradient border rim with refraction & depth bevels
     if (effectiveBorderGradient != null && effectiveBorderWidth > 0.0) {
       glassPanel = CustomPaint(
         foregroundPainter: _LitchiBorderPainter(
           borderRadius: borderRadius.resolve(Directionality.of(context)),
           gradient: effectiveBorderGradient,
           strokeWidth: effectiveBorderWidth,
+          refraction: effectiveRefraction,
+          depth: effectiveDepth,
+          lightAngle: effectiveAngle,
+          specularOpacity: effectiveSpecular,
         ),
         child: glassPanel,
       );
@@ -161,18 +291,26 @@ class LitchiGlass extends StatelessWidget {
   }
 }
 
-/// Custom painter for seamless, high-fidelity gradient borders that avoid
-/// clipping artifacts and sub-pixel gap issues.
+/// Custom painter for seamless, high-fidelity gradient borders incorporating
+/// Figma optical parameters (refraction bevel and 3D depth shadow).
 class _LitchiBorderPainter extends CustomPainter {
   const _LitchiBorderPainter({
     required this.borderRadius,
     required this.gradient,
     required this.strokeWidth,
+    this.refraction = 0.0,
+    this.depth = 0.0,
+    this.lightAngle = 135.0,
+    this.specularOpacity = 0.6,
   });
 
   final BorderRadius borderRadius;
   final Gradient gradient;
   final double strokeWidth;
+  final double refraction;
+  final double depth;
+  final double lightAngle;
+  final double specularOpacity;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -181,18 +319,79 @@ class _LitchiBorderPainter extends CustomPainter {
     final rect = Offset.zero & size;
     final rrect = borderRadius.toRRect(rect).deflate(strokeWidth / 2.0);
 
+    // 1. Primary Specular Rim
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..shader = gradient.createShader(rect);
 
     canvas.drawRRect(rrect, paint);
+
+    // 2. Refraction Inner Bevel (simulates optical bending through glass thickness)
+    if (refraction > 0.0) {
+      final refractionOffset = strokeWidth + (refraction / 100.0) * 2.5;
+      if (rrect.width > refractionOffset * 2 &&
+          rrect.height > refractionOffset * 2) {
+        final innerRRect = rrect.deflate(refractionOffset);
+        final (begin, end) = alignmentPairFromDegrees(lightAngle + 180.0);
+        final refractionGradient = LinearGradient(
+          begin: begin,
+          end: end,
+          stops: const [0.0, 0.5, 1.0],
+          colors: [
+            Colors.white.withValues(
+              alpha: (specularOpacity * 0.35 * (refraction / 100.0)).clamp(0.0, 0.45),
+            ),
+            Colors.transparent,
+            Colors.white.withValues(
+              alpha: (specularOpacity * 0.18 * (refraction / 100.0)).clamp(0.0, 0.3),
+            ),
+          ],
+        );
+
+        final innerPaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8
+          ..shader = refractionGradient.createShader(rect);
+
+        canvas.drawRRect(innerRRect, innerPaint);
+      }
+    }
+
+    // 3. Depth Bevel / Thickness Shadow (simulates 3D slab thickness on shadow side)
+    if (depth > 0.0) {
+      final (shadowBegin, _) = alignmentPairFromDegrees(lightAngle + 180.0);
+      final depthOffset = (depth / 50.0 * 2.0).clamp(0.5, 2.5);
+      final depthRRect = rrect.deflate(depthOffset);
+
+      final depthPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..shader = LinearGradient(
+          begin: shadowBegin,
+          end: Alignment(-shadowBegin.x, -shadowBegin.y),
+          stops: const [0.0, 0.4, 1.0],
+          colors: [
+            Colors.black.withValues(
+              alpha: (0.16 * (depth / 30.0)).clamp(0.0, 0.35),
+            ),
+            Colors.transparent,
+            Colors.transparent,
+          ],
+        ).createShader(rect);
+
+      canvas.drawRRect(depthRRect, depthPaint);
+    }
   }
 
   @override
   bool shouldRepaint(covariant _LitchiBorderPainter oldDelegate) {
     return oldDelegate.borderRadius != borderRadius ||
         oldDelegate.gradient != gradient ||
-        oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.refraction != refraction ||
+        oldDelegate.depth != depth ||
+        oldDelegate.lightAngle != lightAngle ||
+        oldDelegate.specularOpacity != specularOpacity;
   }
 }

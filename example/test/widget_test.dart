@@ -7,7 +7,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('🍹 Glass of Litchi'), findsOneWidget);
-    expect(find.text('Artisanal Dewy Glass'), findsOneWidget);
-    expect(find.text('Live Tuning & Controls'), findsOneWidget);
+    expect(find.text('Figma Optical Glass'), findsOneWidget);
+    expect(find.text('🎨 Figma Glass Inspector'), findsOneWidget);
   });
 }

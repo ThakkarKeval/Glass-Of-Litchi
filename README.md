@@ -35,10 +35,12 @@ import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 ## 🎨 Quick Usage
 
-### 1. Ready-to-use Glass Card
+### 1. Ready-to-use Glass Card (with Dual-Edge Angle)
 ```dart
 LitchiCard(
   flavour: LitchiFlavour.juicy,
+  // 135° = Classic top-left to bottom-right dual-rim reflection
+  lightAngle: 135.0, 
   onTap: () => print('Juicy glass tapped!'),
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,21 +53,40 @@ LitchiCard(
 )
 ```
 
-### 2. Tactile Glass Button
+### 2. Copy Directly from Figma Glass (1:1 Match)
+Match all 7 standard Figma Glass effect options directly:
 ```dart
-LitchiButton(
-  flavour: LitchiFlavour.dewy,
+LitchiCard.fromFigma(
+  lightAngle: 135.0,    // 0° to 360° (direction of key light)
+  lightPercent: 85.0,   // 0% to 100% (specular peak brightness)
+  refraction: 25.0,     // 0% to 100% (inner optical bevel bending)
+  depth: 10.0,          // 0 to 50 px (3D slab thickness & drop shadow)
+  dispersion: 35.0,     // 0% to 100% (chromatic rainbow rim fringing)
+  frost: 26.0,          // 0% to 100% (matte blur roughness)
+  splay: 50.0,          // 0% to 100% (specular highlight arc spread)
+  child: const Text('Exact Figma Clone'),
+)
+```
+
+### 3. Tactile Glass Button
+```dart
+LitchiButton.fromFigma(
+  lightAngle: 135.0,
+  lightPercent: 90.0,
   onPressed: () {},
   child: const Text('Refresh'),
 )
 ```
 
-### 3. Core Primitive
+### 4. Core Primitive
 ```dart
-LitchiGlass(
-  flavour: LitchiFlavour.crystal,
-  borderRadius: BorderRadius.circular(16),
-  padding: const EdgeInsets.all(16),
+LitchiGlass.fromFigma(
+  lightAngle: 135.0,
+  frost: 25.0,
+  dispersion: 20.0,
+  child: const Text('Custom Container'),
+)
+```
   child: const Text('Custom Container'),
 )
 ```
