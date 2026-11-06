@@ -4,6 +4,10 @@ A dewy, organic glassmorphism and liquid glass UI kit for Flutter.
 
 Instead of sterile, cold blur wrappers or hyper-complex shader configuration manuals, **Glass of Litchi** delivers **artisanal, fruit-toned glass aesthetics** with opinionated, gorgeous defaults and zero setup.
 
+<p align="center">
+  <img src="doc/hero_card.png" alt="Glass of Litchi Hero Card" width="560" />
+</p>
+
 ---
 
 ## ✨ Features
@@ -69,6 +73,10 @@ LitchiCard.fromFigma(
 )
 ```
 
+<p align="center">
+  <img src="doc/figma_inspector_card.png" alt="Figma 1:1 Glass Effect Inspector" width="540" />
+</p>
+
 ### 3. Signature Floating Glass Tab Bar (`LitchiTabBar`)
 Floating navigation bar with an animated, sliding liquid glass squircle selection pill that squashes and stretches with spring physics:
 ```dart
@@ -83,6 +91,10 @@ LitchiTabBar(
   ],
 )
 ```
+
+<p align="center">
+  <img src="doc/tab_bar.png" alt="Floating Glass Tab Bar" width="540" />
+</p>
 
 ### 4. 120 FPS High-Performance Feeds (`LitchiScope`)
 Eliminate the multi-`BackdropFilter` GPU bottleneck in scrolling feeds with `liteMode`:
@@ -99,6 +111,12 @@ LitchiScope(
   ),
 )
 ```
+
+<p align="center">
+  <img src="doc/stat_cards.png" alt="Liquid Stat Cards" width="520" />
+  <br/><br/>
+  <img src="doc/music_player.png" alt="Ambient Lo-Fi Glass Player" width="520" />
+</p>
 
 ### 5. Tactile Glass Button
 ```dart
@@ -121,6 +139,20 @@ LitchiGlass.fromFigma(
   child: const Text('Custom Container'),
 )
 ```
+
+### 7. Hardware GPU Fragment Shader Optics (Impeller)
+On devices running Flutter's Impeller engine, `glass_of_litchi` uses an embedded GLSL 460 fragment shader (`shaders/refraction.frag`) composed with `ImageFilter.shader` for live optical refraction and chromatic dispersion:
+* **Wavelength Dispersion:** Bends red and blue light rays at different angles along the glass perimeter, creating authentic optical fringing.
+* **Rim Bevel Distortion:** Curves and magnifies background pixels inward along the continuous squircle border.
+* **Zero-Delay Pre-caching:**
+  ```dart
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await LitchiGlass.precacheShaders(); // Instant GPU compilation
+    runApp(const MyApp());
+  }
+  ```
+* **Graceful Fallback:** If fragment shaders are unavailable in the host environment (e.g., legacy Skia or headless test runners), it automatically and silently falls back to standard Gaussian blur.
 
 ---
 

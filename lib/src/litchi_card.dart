@@ -36,6 +36,7 @@ class LitchiCard extends StatefulWidget {
     this.shadowColor,
     this.enableInteractiveFeedback = true,
     this.enableBlur = true,
+    this.shaderRefraction = true,
   });
 
   /// Factory constructor to instantiate a [LitchiCard] directly from Figma Glass effect properties.
@@ -61,6 +62,7 @@ class LitchiCard extends StatefulWidget {
     Color? shadowColor,
     bool enableInteractiveFeedback = true,
     bool enableBlur = true,
+    bool shaderRefraction = true,
   }) {
     return LitchiCard(
       key: key,
@@ -83,6 +85,7 @@ class LitchiCard extends StatefulWidget {
       shadowColor: shadowColor,
       enableInteractiveFeedback: enableInteractiveFeedback,
       enableBlur: enableBlur,
+      shaderRefraction: shaderRefraction,
       child: child,
     );
   }
@@ -159,6 +162,9 @@ class LitchiCard extends StatefulWidget {
   /// Whether backdrop blur is enabled.
   final bool enableBlur;
 
+  /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  final bool shaderRefraction;
+
   @override
   State<LitchiCard> createState() => _LitchiCardState();
 }
@@ -231,38 +237,22 @@ class _LitchiCardState extends State<LitchiCard>
       specularOpacity: widget.specularOpacity,
       secondarySpecularOpacity: widget.secondarySpecularOpacity,
       enableBlur: widget.enableBlur,
+      shaderRefraction: widget.shaderRefraction,
       child: widget.child,
     );
 
-    // Apply shadow: accurately follow Apple squircle silhouette when smoothing > 0
+    // Apply ambient drop shadow: excludes glass interior to avoid dark bleed-through
     if (effectiveElevation > 0) {
-      if (widget.cornerSmoothing > 0.0) {
-        innerCard = CustomPaint(
-          painter: _SquircleShadowPainter(
-            borderRadius: resolvedRadius,
-            cornerSmoothing: widget.cornerSmoothing,
-            shadowColor: effectiveShadowColor,
-            blurRadius: effectiveElevation * 2.2,
-            offset: shadowOffset,
-          ),
-          child: innerCard,
-        );
-      } else {
-        innerCard = DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: widget.borderRadius,
-            boxShadow: [
-              BoxShadow(
-                color: effectiveShadowColor,
-                blurRadius: effectiveElevation * 2.2,
-                offset: shadowOffset,
-                spreadRadius: -2.0,
-              ),
-            ],
-          ),
-          child: innerCard,
-        );
-      }
+      innerCard = CustomPaint(
+        painter: _SquircleShadowPainter(
+          borderRadius: resolvedRadius,
+          cornerSmoothing: widget.cornerSmoothing,
+          shadowColor: effectiveShadowColor,
+          blurRadius: effectiveElevation * 2.2,
+          offset: shadowOffset,
+        ),
+        child: innerCard,
+      );
     }
 
     Widget card = innerCard;
@@ -373,6 +363,13 @@ class _SquircleShadowPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (blurRadius <= 0.0 || shadowColor.a <= 0.0) return;
 
+    final cardRect = Offset.zero & size;
+    final cardPath = SquirclePath.create(
+      rect: cardRect,
+      borderRadius: borderRadius,
+      smoothing: cornerSmoothing,
+    );
+
     final shadowRect = (offset & size).deflate(1.5);
     final shadowPath = SquirclePath.create(
       rect: shadowRect,
@@ -384,7 +381,18 @@ class _SquircleShadowPainter extends CustomPainter {
       ..color = shadowColor
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurRadius);
 
+    // Clip out the card interior so the drop shadow never bleeds through the translucent glass
+    final outerClipRect = cardRect.inflate(blurRadius * 3.0 + offset.distance);
+    final clipHolePath = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(outerClipRect),
+      cardPath,
+    );
+
+    canvas.save();
+    canvas.clipPath(clipHolePath);
     canvas.drawPath(shadowPath, paint);
+    canvas.restore();
   }
 
   @override

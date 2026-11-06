@@ -24,6 +24,7 @@ class LitchiButton extends StatefulWidget {
     this.splay,
     this.enableHaptics = true,
     this.enableBlur = true,
+    this.shaderRefraction = true,
   });
 
   /// Factory constructor to instantiate a [LitchiButton] directly from Figma Glass properties.
@@ -45,6 +46,7 @@ class LitchiButton extends StatefulWidget {
         const EdgeInsets.symmetric(horizontal: 24.0, vertical: 14.0),
     bool enableHaptics = true,
     bool enableBlur = true,
+    bool shaderRefraction = true,
   }) {
     return LitchiButton(
       key: key,
@@ -61,6 +63,7 @@ class LitchiButton extends StatefulWidget {
       splay: splay,
       enableHaptics: enableHaptics,
       enableBlur: enableBlur,
+      shaderRefraction: shaderRefraction,
       child: child,
     );
   }
@@ -109,6 +112,9 @@ class LitchiButton extends StatefulWidget {
 
   /// Whether backdrop blur is enabled.
   final bool enableBlur;
+
+  /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  final bool shaderRefraction;
 
   @override
   State<LitchiButton> createState() => _LitchiButtonState();
@@ -201,6 +207,7 @@ class _LitchiButtonState extends State<LitchiButton>
           frost: widget.frost,
           splay: widget.splay,
           enableBlur: widget.enableBlur,
+          shaderRefraction: widget.shaderRefraction,
           child: DefaultTextStyle(
             style: const TextStyle(
               color: Colors.white,

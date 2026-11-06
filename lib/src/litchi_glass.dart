@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'flavour.dart';
 import 'litchi_scope.dart';
+import 'litchi_shader.dart';
 import 'squircle.dart';
 
 /// The core primitive widget for the **Glass of Litchi** UI design system.
@@ -41,6 +42,7 @@ class LitchiGlass extends StatelessWidget {
     this.specularOpacity,
     this.secondarySpecularOpacity,
     this.enableBlur = true,
+    this.shaderRefraction = true,
     this.clipBehavior = Clip.antiAlias,
   });
 
@@ -65,6 +67,7 @@ class LitchiGlass extends StatelessWidget {
     EdgeInsetsGeometry? margin,
     double borderWidth = 1.2,
     bool enableBlur = true,
+    bool shaderRefraction = true,
   }) {
     return LitchiGlass(
       key: key,
@@ -84,9 +87,13 @@ class LitchiGlass extends StatelessWidget {
       tint: tintColor,
       borderWidth: borderWidth,
       enableBlur: enableBlur,
+      shaderRefraction: shaderRefraction,
       child: child,
     );
   }
+
+  /// Pre-caches and compiles the GPU fragment shader for zero-delay optical refraction.
+  static Future<bool> precacheShaders() => LitchiShaderPipeline.instance.ensureLoaded();
 
   /// The widget positioned inside the glass container.
   final Widget child;
@@ -155,12 +162,28 @@ class LitchiGlass extends StatelessWidget {
   /// [LitchiFlavour.fallbackColor] is used instead to guarantee maximum FPS.
   final bool enableBlur;
 
+  /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  ///
+  /// Defaults to `true`. When running on Impeller with shader support,
+  /// light rays bend through the glass surface with chromatic aberration.
+  /// Gracefully falls back to standard Gaussian blur if shaders are unsupported.
+  final bool shaderRefraction;
+
   /// The clipping behavior applied to the child and background layers.
   final Clip clipBehavior;
 
   @override
   Widget build(BuildContext context) {
     final scope = LitchiScope.maybeOf(context);
+
+    final effectiveShaderRefraction =
+        shaderRefraction && (scope?.shaderRefraction ?? true);
+
+    if (effectiveShaderRefraction &&
+        !LitchiShaderPipeline.instance.isReady &&
+        !LitchiShaderPipeline.instance.hasFailed) {
+      LitchiShaderPipeline.instance.ensureLoaded();
+    }
 
     final effectiveFrost = frost ?? flavour.frost;
     final effectiveBlur =
@@ -272,16 +295,48 @@ class LitchiGlass extends StatelessWidget {
 
     Widget glassPanel;
 
-    if (effectiveEnableBlur && effectiveBlur > 0.0) {
-      final blurWidget = BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: effectiveBlur,
-          sigmaY: effectiveBlur,
-        ),
-        child: Container(
-          color: effectiveTint,
-          child: content,
-        ),
+    if (effectiveEnableBlur && (effectiveBlur > 0.0 || effectiveShaderRefraction)) {
+      final blurWidget = ValueListenableBuilder<FragmentProgram?>(
+        valueListenable: LitchiShaderPipeline.instance.programNotifier,
+        builder: (context, program, _) {
+          ImageFilter? filter;
+          if (effectiveBlur > 0.0) {
+            filter = ImageFilter.blur(
+              sigmaX: effectiveBlur,
+              sigmaY: effectiveBlur,
+            );
+          }
+
+          if (effectiveShaderRefraction && program != null) {
+            final shaderFilter = LitchiShaderPipeline.instance.createRefractionFilter(
+              baseBlur: filter,
+              refraction: (effectiveRefraction / 100.0).clamp(0.0, 1.0),
+              dispersion: (effectiveDispersion / 100.0).clamp(0.0, 1.0),
+              bevelWidth: (12.0 + (effectiveRefraction / 100.0) * 16.0).clamp(8.0, 36.0),
+              lightAngle: effectiveAngle,
+              specular: effectiveSpecular,
+              cornerRadius: resolvedRadius.topLeft.x,
+            );
+            if (shaderFilter != null) {
+              filter = shaderFilter;
+            }
+          }
+
+          if (filter == null) {
+            return Container(
+              color: effectiveTint,
+              child: content,
+            );
+          }
+
+          return BackdropFilter(
+            filter: filter,
+            child: Container(
+              color: effectiveTint,
+              child: content,
+            ),
+          );
+        },
       );
 
       if (effectiveSmoothing > 0.0) {
@@ -407,23 +462,23 @@ class _LitchiBorderPainter extends CustomPainter {
       canvas.drawRRect(rrect, paint);
     }
 
-    // 2. Refraction Inner Bevel (simulates optical bending through glass thickness)
+    // 2. Refraction Inner Bevel (simulates optical bending & caustic light through glass thickness)
     if (refraction > 0.0) {
-      final refractionOffset = strokeWidth + (refraction / 100.0) * 2.5;
+      final refractionOffset = strokeWidth + (refraction / 100.0) * 2.0;
       if (rect.width > refractionOffset * 2 && rect.height > refractionOffset * 2) {
         final innerRect = rect.deflate(refractionOffset);
-        final (begin, end) = alignmentPairFromDegrees(lightAngle + 180.0);
+        final (begin, end) = alignmentPairFromDegrees(lightAngle);
         final refractionGradient = LinearGradient(
           begin: begin,
           end: end,
           stops: const [0.0, 0.5, 1.0],
           colors: [
             Colors.white.withValues(
-              alpha: (specularOpacity * 0.16 * (refraction / 100.0)).clamp(0.0, 0.22),
+              alpha: (specularOpacity * 0.20 * (refraction / 100.0)).clamp(0.0, 0.25),
             ),
             Colors.transparent,
             Colors.white.withValues(
-              alpha: (specularOpacity * 0.08 * (refraction / 100.0)).clamp(0.0, 0.14),
+              alpha: (specularOpacity * 0.08 * (refraction / 100.0)).clamp(0.0, 0.12),
             ),
           ],
         );
@@ -444,41 +499,6 @@ class _LitchiBorderPainter extends CustomPainter {
           final innerRRect = borderRadius.toRRect(rect).deflate(refractionOffset);
           canvas.drawRRect(innerRRect, innerPaint);
         }
-      }
-    }
-
-    // 3. Depth Bevel / Thickness Shadow (simulates 3D slab thickness on shadow side)
-    if (depth > 0.0) {
-      final (shadowBegin, _) = alignmentPairFromDegrees(lightAngle + 180.0);
-      final depthOffset = (depth / 50.0 * 2.0).clamp(0.5, 2.5);
-      final depthRect = rect.deflate(depthOffset);
-
-      final depthPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..shader = LinearGradient(
-          begin: shadowBegin,
-          end: Alignment(-shadowBegin.x, -shadowBegin.y),
-          stops: const [0.0, 0.4, 1.0],
-          colors: [
-            Colors.black.withValues(
-              alpha: (0.16 * (depth / 30.0)).clamp(0.0, 0.35),
-            ),
-            Colors.transparent,
-            Colors.transparent,
-          ],
-        ).createShader(rect);
-
-      if (cornerSmoothing > 0.0) {
-        final depthPath = SquirclePath.create(
-          rect: depthRect,
-          borderRadius: _deflateRadius(borderRadius, depthOffset),
-          smoothing: cornerSmoothing,
-        );
-        canvas.drawPath(depthPath, depthPaint);
-      } else {
-        final depthRRect = borderRadius.toRRect(rect).deflate(depthOffset);
-        canvas.drawRRect(depthRRect, depthPaint);
       }
     }
   }

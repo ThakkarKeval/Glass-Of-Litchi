@@ -3,7 +3,9 @@ import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 import 'glass_list_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LitchiGlass.precacheShaders();
   runApp(const GlassOfLitchiDemoApp());
 }
 
@@ -114,6 +116,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
   double _cornerSmoothing = 0.6;
 
   bool _enableBlur = true;
+  bool _shaderRefraction = true;
   int _counter = 0;
 
   final List<LitchiFlavour> _flavours = const [
@@ -152,6 +155,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       _splay = 50.0;
       _cornerSmoothing = 0.6;
       _enableBlur = true;
+      _shaderRefraction = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -314,6 +318,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                       splay: _splay,
                       cornerSmoothing: _cornerSmoothing,
                       enableBlur: _enableBlur,
+                      shaderRefraction: _shaderRefraction,
                       onTap: () {
                         setState(() {
                           _counter++;
@@ -610,6 +615,20 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                             onChanged: (val) {
                               setState(() {
                                 _enableBlur = val;
+                              });
+                            },
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('GPU Shader Refraction (Impeller)'),
+                            subtitle: const Text(
+                              'Live optical pixel bending & chromatic aberration',
+                              style: TextStyle(fontSize: 12.0),
+                            ),
+                            value: _shaderRefraction,
+                            onChanged: (val) {
+                              setState(() {
+                                _shaderRefraction = val;
                               });
                             },
                           ),

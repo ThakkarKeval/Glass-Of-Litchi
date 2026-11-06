@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
@@ -232,6 +233,40 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(activeIndex, 1);
+    });
+  });
+
+  group('LitchiShaderPipeline optical refraction & fallback', () {
+    test('LitchiShaderPipeline instance is accessible with valid defaults', () {
+      final pipeline = LitchiShaderPipeline.instance;
+      expect(pipeline, isNotNull);
+      expect(pipeline.programNotifier, isNotNull);
+    });
+
+    test('createRefractionFilter falls back gracefully when shader is not preloaded', () {
+      final baseBlur = ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10);
+      final filter = LitchiShaderPipeline.instance.createRefractionFilter(
+        baseBlur: baseBlur,
+        refraction: 0.5,
+        dispersion: 0.5,
+      );
+      expect(filter, equals(baseBlur));
+    });
+
+    testWidgets('LitchiGlass respects shaderRefraction flag in tree', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiGlass(
+              shaderRefraction: false,
+              child: const Text('Shader Disabled Glass'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Shader Disabled Glass'), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsOneWidget);
     });
   });
 }

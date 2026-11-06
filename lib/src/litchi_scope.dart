@@ -26,6 +26,7 @@ class LitchiScope extends InheritedWidget {
     this.dispersion,
     this.cornerSmoothing = 0.6,
     this.liteMode = false,
+    this.shaderRefraction,
     @Deprecated('Use liteMode instead') this.batchBlur,
   });
 
@@ -49,6 +50,9 @@ class LitchiScope extends InheritedWidget {
   /// When `true`, nested child glass widgets bypass independent [BackdropFilter]
   /// passes and render crystal glass with full specular rims and squircle clipping, maintaining 120 FPS.
   final bool liteMode;
+
+  /// Optional override to enable or disable GPU fragment shader refraction across the subtree.
+  final bool? shaderRefraction;
 
   /// Deprecated alias for [liteMode].
   @Deprecated('Use liteMode instead')
@@ -75,6 +79,7 @@ class LitchiScope extends InheritedWidget {
         oldWidget.lightPercent != lightPercent ||
         oldWidget.dispersion != dispersion ||
         oldWidget.cornerSmoothing != cornerSmoothing ||
+        oldWidget.shaderRefraction != shaderRefraction ||
         oldWidget.effectiveLiteMode != effectiveLiteMode;
   }
 }

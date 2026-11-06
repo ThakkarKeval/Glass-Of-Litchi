@@ -47,6 +47,7 @@ class LitchiTabBar extends StatefulWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
     this.enableHaptics = true,
     this.enableBlur = true,
+    this.shaderRefraction = true,
   }) : assert(items.length >= 2, 'LitchiTabBar requires at least 2 items.');
 
   /// The list of tab destinations.
@@ -87,6 +88,9 @@ class LitchiTabBar extends StatefulWidget {
 
   /// Whether backdrop blur is enabled for the navigation bar container.
   final bool enableBlur;
+
+  /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  final bool shaderRefraction;
 
   @override
   State<LitchiTabBar> createState() => _LitchiTabBarState();
@@ -156,6 +160,7 @@ class _LitchiTabBarState extends State<LitchiTabBar>
       cornerSmoothing: widget.cornerSmoothing,
       padding: widget.padding,
       enableBlur: widget.enableBlur,
+      shaderRefraction: widget.shaderRefraction,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final totalWidth = constraints.maxWidth;
