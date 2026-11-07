@@ -40,6 +40,7 @@ class LitchiGlass extends StatelessWidget {
     this.frost,
     this.splay,
     this.noise,
+    this.vibrancy,
     this.borderGradient,
     this.borderWidth,
     this.specularOpacity,
@@ -62,6 +63,7 @@ class LitchiGlass extends StatelessWidget {
     double frost = 25.0,
     double splay = 40.0,
     double noise = 0.0,
+    double vibrancy = 1.0,
     double cornerSmoothing = 0.6,
     Color tintColor = const Color(0x1AFFFFFF),
     BorderRadiusGeometry borderRadius = const BorderRadius.all(
@@ -92,6 +94,7 @@ class LitchiGlass extends StatelessWidget {
       frost: frost,
       splay: splay,
       noise: noise,
+      vibrancy: vibrancy,
       tint: tintColor,
       borderWidth: borderWidth,
       enableBlur: enableBlur,
@@ -159,6 +162,9 @@ class LitchiGlass extends StatelessWidget {
   /// Optional override for the micro-surface roughness / film grain noise (0% to 100%).
   final double? noise;
 
+  /// Optional override for background saturation vibrancy boost multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
+
   /// Optional override for the border rim gradient.
   final Gradient? borderGradient;
 
@@ -222,6 +228,8 @@ class LitchiGlass extends StatelessWidget {
     final effectiveSplay = splay ?? flavour.splay;
     final effectiveNoise =
         (noise ?? scope?.noise ?? flavour.noise).clamp(0.0, 100.0);
+    final effectiveVibrancy =
+        vibrancy ?? scope?.vibrancy ?? flavour.vibrancy;
     final effectiveBorderWidth = borderWidth ?? flavour.borderWidth;
     final effectiveSmoothing =
         (cornerSmoothing ?? scope?.cornerSmoothing ?? 0.6).clamp(0.0, 1.0);
@@ -334,7 +342,9 @@ class LitchiGlass extends StatelessWidget {
     Widget glassPanel;
 
     if (effectiveEnableBlur &&
-        (effectiveBlur > 0.0 || effectiveShaderRefraction)) {
+        (effectiveBlur > 0.0 ||
+            effectiveShaderRefraction ||
+            (effectiveVibrancy != 1.0 && effectiveVibrancy > 0.0))) {
       final blurWidget = ValueListenableBuilder<FragmentProgram?>(
         valueListenable: LitchiShaderPipeline.instance.programNotifier,
         builder: (context, program, _) {
@@ -344,6 +354,20 @@ class LitchiGlass extends StatelessWidget {
               sigmaX: effectiveBlur,
               sigmaY: effectiveBlur,
             );
+          }
+
+          if (effectiveVibrancy != 1.0 && effectiveVibrancy > 0.0) {
+            final vibrancyFilter = ColorFilter.matrix(
+              createVibrancyMatrix(effectiveVibrancy),
+            );
+            if (filter != null) {
+              filter = ImageFilter.compose(
+                outer: filter,
+                inner: vibrancyFilter,
+              );
+            } else {
+              filter = vibrancyFilter;
+            }
           }
 
           if (effectiveShaderRefraction && program != null) {

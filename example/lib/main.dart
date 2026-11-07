@@ -116,6 +116,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
   double _frost = 26.0;
   double _splay = 50.0;
   double _noise = 4.0;
+  double _vibrancy = 1.40;
   double _cornerSmoothing = 0.6;
 
   bool _enableBlur = true;
@@ -130,6 +131,9 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
     LitchiFlavour.milkyLitchi,
     LitchiFlavour.roseTint,
     LitchiFlavour.goldenCitrus,
+    LitchiFlavour.liquidMercury,
+    LitchiFlavour.polarIce,
+    LitchiFlavour.smokedQuartz,
   ];
 
   void _applyFlavour(LitchiFlavour flavour) {
@@ -143,6 +147,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       _frost = flavour.frost;
       _splay = flavour.splay;
       _noise = flavour.noise;
+      _vibrancy = flavour.vibrancy;
       _cornerSmoothing = 0.6;
     });
   }
@@ -158,6 +163,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       _frost = 26.0;
       _splay = 50.0;
       _noise = 4.0;
+      _vibrancy = 1.40;
       _cornerSmoothing = 0.6;
       _enableBlur = true;
       _shaderRefraction = false;
@@ -269,6 +275,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                       frost: _frost,
                       splay: _splay,
                       noise: _noise,
+                      vibrancy: _vibrancy,
                       cornerSmoothing: _cornerSmoothing,
                       enableBlur: _enableBlur,
                       shaderRefraction: _shaderRefraction,
@@ -526,6 +533,18 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                             onChanged: (val) => setState(() => _noise = val),
                           ),
 
+                          // 10. Apple Background Vibrancy
+                          _buildSliderRow(
+                            label: 'Background Vibrancy',
+                            valueText:
+                                '${(_vibrancy * 100).round()}% (Apple Saturation Boost)',
+                            value: _vibrancy,
+                            min: 0.5,
+                            max: 2.5,
+                            divisions: 40,
+                            onChanged: (val) => setState(() => _vibrancy = val),
+                          ),
+
                           const Divider(height: 28.0, color: Colors.white24),
 
                           // Generated Figma Code snippet
@@ -556,6 +575,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                               '  frost: ${_frost.round()}.0,\n'
                               '  splay: ${_splay.round()}.0,\n'
                               '  noise: ${_noise.round()}.0,\n'
+                              '  vibrancy: ${_vibrancy.toStringAsFixed(2)},\n'
                               '  cornerSmoothing: ${_cornerSmoothing.toStringAsFixed(2)},\n'
                               '  child: ...,\n'
                               ')',

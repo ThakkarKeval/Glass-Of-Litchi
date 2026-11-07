@@ -22,6 +22,7 @@ class _MenuItem {
   final String price;
   final IconData icon;
   final Color badgeColor;
+  final LitchiFlavour? flavour;
 
   const _MenuItem({
     required this.title,
@@ -30,6 +31,7 @@ class _MenuItem {
     required this.price,
     required this.icon,
     required this.badgeColor,
+    this.flavour,
   });
 }
 
@@ -59,6 +61,7 @@ class _GlassListScreenState extends State<GlassListScreen> {
 
   final List<_CategoryData> _categories = const [
     _CategoryData(id: 'All', label: 'All Drinks', icon: Icons.auto_awesome),
+    _CategoryData(id: 'Luxury', label: 'Luxury Reserve', icon: Icons.workspace_premium_rounded),
     _CategoryData(id: 'Juicy', label: 'Juicy Pulp', icon: Icons.water_drop_rounded),
     _CategoryData(id: 'Frosted', label: 'Frosted Dew', icon: Icons.ac_unit_rounded),
     _CategoryData(id: 'Crystal', label: 'Crystal Glaze', icon: Icons.diamond_outlined),
@@ -107,6 +110,33 @@ class _GlassListScreenState extends State<GlassListScreen> {
       price: '\$7.50',
       icon: Icons.spa,
       badgeColor: Color(0xFFFF4081),
+    ),
+    _MenuItem(
+      title: 'Polar Ice Glacier Fizz',
+      subtitle: 'High-vibrancy cerulean ice with crystallized lychee pulp',
+      categoryId: 'Luxury',
+      price: '\$8.80',
+      icon: Icons.ac_unit_rounded,
+      badgeColor: Color(0xFF38BDF8),
+      flavour: LitchiFlavour.polarIce,
+    ),
+    _MenuItem(
+      title: 'Liquid Mercury Elixir',
+      subtitle: 'Ultra-reflective silver-slate botanical cold drip',
+      categoryId: 'Luxury',
+      price: '\$9.50',
+      icon: Icons.lens_blur_rounded,
+      badgeColor: Color(0xFF8B9BB4),
+      flavour: LitchiFlavour.liquidMercury,
+    ),
+    _MenuItem(
+      title: 'Smoked Quartz Nitro Brew',
+      subtitle: 'Velvety dark obsidian roast with warm amber crema',
+      categoryId: 'Luxury',
+      price: '\$8.20',
+      icon: Icons.coffee_rounded,
+      badgeColor: Color(0xFFD97706),
+      flavour: LitchiFlavour.smokedQuartz,
     ),
     _MenuItem(
       title: 'Golden Yuzu Fizz',
@@ -643,6 +673,7 @@ class _GlassListScreenState extends State<GlassListScreen> {
                             price: item.price,
                             icon: item.icon,
                             badgeColor: item.badgeColor,
+                            flavour: item.flavour,
                           );
                         },
                         childCount: _filteredMenuItems.length,
@@ -682,11 +713,12 @@ class _GlassListScreenState extends State<GlassListScreen> {
     required String price,
     required IconData icon,
     required Color badgeColor,
+    LitchiFlavour? flavour,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: LitchiCard(
-        flavour: LitchiFlavour.dewy,
+        flavour: flavour ?? LitchiFlavour.dewy,
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         elevation: 6.0,
         shaderRefraction: false,

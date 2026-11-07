@@ -41,6 +41,7 @@ class LitchiTextField extends StatefulWidget {
     this.frost,
     this.splay,
     this.noise,
+    this.vibrancy,
     this.enableBlur = true,
     this.shaderRefraction = false,
   });
@@ -70,6 +71,7 @@ class LitchiTextField extends StatefulWidget {
     double frost = 22.0,
     double splay = 40.0,
     double noise = 0.0,
+    double vibrancy = 1.0,
     double cornerSmoothing = 0.6,
     BorderRadiusGeometry borderRadius = const BorderRadius.all(
       Radius.circular(20.0),
@@ -108,6 +110,7 @@ class LitchiTextField extends StatefulWidget {
       frost: frost,
       splay: splay,
       noise: noise,
+      vibrancy: vibrancy,
       enableBlur: enableBlur,
       shaderRefraction: shaderRefraction,
     );
@@ -193,6 +196,9 @@ class LitchiTextField extends StatefulWidget {
 
   /// Optional override for the micro-surface roughness / film grain noise (0% to 100%).
   final double? noise;
+
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
 
   /// Whether backdrop blur is enabled.
   final bool enableBlur;
@@ -301,6 +307,7 @@ class _LitchiTextFieldState extends State<LitchiTextField> {
         frost: widget.frost,
         splay: widget.splay,
         noise: widget.noise,
+        vibrancy: widget.vibrancy,
         enableBlur: widget.enableBlur,
         shaderRefraction: widget.shaderRefraction,
         child: Row(

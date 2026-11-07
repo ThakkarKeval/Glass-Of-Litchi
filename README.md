@@ -216,19 +216,27 @@ On devices running Flutter's Impeller engine, `glass_of_litchi` uses an embedded
 
 > **💡 Apple-Aligned Local Refraction by Default (`shaderRefraction: false`):** Following Apple's design principles (e.g. visionOS & iOS `UIVisualEffectView`), glass components default to hardware Gaussian blur and authentic G2 squircle rim highlights. This ensures the glass only refracts and diffuses whatever content is directly underneath itself, with zero cross-card bleed, zero whole-screen warping, and buttery 120 FPS performance in scrollable views (`ListView`, `CustomScrollView`). You can opt into `shaderRefraction: true` on static hero panels if experimental Impeller fragment shader chromatic aberration is desired.
 
+### 12. Apple / visionOS Vibrancy Saturation Boost (`vibrancy`)
+Heavy Gaussian blur on standard glass can desaturate rich background artwork, photos, or starfields into a dull, muddy gray. Inspired by Apple's `UIVibrancyEffect`, `glass_of_litchi` composes a hardware-accelerated Rec. 709 luminance saturation matrix (`createVibrancyMatrix`) directly into the backdrop pipeline:
+* `vibrancy: 1.0`: Neutral, unadjusted color saturation.
+* `vibrancy: 1.2 – 1.5`: Rich chromatic saturation boost that lets cosmic nebulae, neon glows, and wallpaper hues pop vibrantly through the frosted glass.
+
 ---
 
 ## 🍓 Preset Flavours
 
 | Flavour | Characteristics | Typical Use Case |
 | :--- | :--- | :--- |
-| `dewy` | Crisp, high translucency, subtle white sheen | Floating action bars, navbar headers |
-| `juicy` | Succulent lychee tint with soft pink ambient warmth | Highlighted cards, hero CTAs, banners |
-| `frosted` | Velvety matte frost with wide Gaussian dispersion | Background sheets, overlays, dialogs |
-| `crystal` | Ultra-clear refraction rim with minimal diffusion | Badges, pills, chip selectors |
-| `milkyLitchi`| Creamy dessert undertone, semi-opaque | Dark mode contrast, readable reading cards |
-| `roseTint` | Dusky rose petal glow | Romantic or luxury lifestyle accents |
-| `goldenCitrus` | Sun-kissed golden citrus glaze | Warning alerts, rewards, sunny highlights |
+| `dewy` | Crisp, high translucency, subtle white sheen (`vibrancy: 1.15`) | Floating action bars, navbar headers |
+| `juicy` | Succulent lychee tint with rose-gold prismatic sheen (`vibrancy: 1.40`) | Highlighted cards, hero CTAs, banners |
+| `frosted` | Velvety matte frost with wide Gaussian dispersion (`vibrancy: 1.10`) | Background sheets, overlays, dialogs |
+| `crystal` | Ultra-clear refraction rim with minimal diffusion (`vibrancy: 1.25`) | Badges, pills, chip selectors |
+| `milkyLitchi`| Creamy dessert undertone, semi-opaque (`vibrancy: 1.05`) | Dark mode contrast, readable reading cards |
+| `roseTint` | Dusky rose petal glow with dual-rim sheen (`vibrancy: 1.30`) | Romantic or luxury lifestyle accents |
+| `goldenCitrus` | Sun-kissed golden citrus glaze with nectar accents (`vibrancy: 1.35`) | Warning alerts, rewards, sunny highlights |
+| `liquidMercury` | Liquid chrome/mercury, high metallic reflectivity (`vibrancy: 1.15`) | Premium luxury badges, dark chrome CTAs |
+| `polarIce` | Glacial ice crystal, high dispersion cyan fringing (`vibrancy: 1.40`) | Electric frosty badges, winter/ice accents |
+| `smokedQuartz` | Rich smoky bronze obsidian for OLED dark modes (`vibrancy: 1.25`) | Velvet dark-mode reading cards, bottom sheets |
 
 ---
 

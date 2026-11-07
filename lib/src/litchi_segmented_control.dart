@@ -45,6 +45,7 @@ class LitchiSegmentedControl<T> extends StatefulWidget {
     this.cornerSmoothing = 0.6,
     this.height = 44.0,
     this.padding = const EdgeInsets.all(4.0),
+    this.vibrancy,
     this.enableHaptics = true,
     this.enableBlur = true,
     this.shaderRefraction = false,
@@ -89,6 +90,9 @@ class LitchiSegmentedControl<T> extends StatefulWidget {
   /// Whether backdrop blur is enabled.
   final bool enableBlur;
 
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
+
   /// Whether GPU fragment shader optical refraction is enabled.
   final bool shaderRefraction;
 
@@ -126,6 +130,7 @@ class _LitchiSegmentedControlState<T> extends State<LitchiSegmentedControl<T>> {
       cornerSmoothing: widget.cornerSmoothing,
       height: widget.height,
       padding: widget.padding,
+      vibrancy: widget.vibrancy,
       enableBlur: widget.enableBlur,
       shaderRefraction: widget.shaderRefraction,
       child: LayoutBuilder(

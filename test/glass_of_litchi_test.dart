@@ -804,4 +804,154 @@ void main() {
       expect(find.text('Scoped Noise Glass'), findsOneWidget);
     });
   });
+
+  group('Apple Vibrancy & Luxury Presets', () {
+    test('createVibrancyMatrix creates valid 4x5 color matrix', () {
+      final identityMatrix = createVibrancyMatrix(1.0);
+      expect(identityMatrix.length, 20);
+
+      // Identity diagonal
+      expect(identityMatrix[0], closeTo(1.0, 1e-4)); // R
+      expect(identityMatrix[6], closeTo(1.0, 1e-4)); // G
+      expect(identityMatrix[12], closeTo(1.0, 1e-4)); // B
+      expect(identityMatrix[18], closeTo(1.0, 1e-4)); // A
+      expect(identityMatrix[1], closeTo(0.0, 1e-4));
+      expect(identityMatrix[2], closeTo(0.0, 1e-4));
+
+      final saturatedMatrix = createVibrancyMatrix(1.5);
+      expect(saturatedMatrix.length, 20);
+      expect(saturatedMatrix[0], greaterThan(1.0)); // Red amplified
+
+      final desaturatedMatrix = createVibrancyMatrix(0.0);
+      expect(desaturatedMatrix[0], closeTo(0.2126, 1e-4));
+      expect(desaturatedMatrix[1], closeTo(0.7152, 1e-4));
+      expect(desaturatedMatrix[2], closeTo(0.0722, 1e-4));
+    });
+
+    test('New luxury presets initialize with correct aesthetics', () {
+      expect(LitchiFlavour.liquidMercury.name, 'Liquid Mercury');
+      expect(LitchiFlavour.liquidMercury.lightPercent, 96.0);
+      expect(LitchiFlavour.liquidMercury.vibrancy, 1.15);
+
+      expect(LitchiFlavour.polarIce.name, 'Polar Ice');
+      expect(LitchiFlavour.polarIce.dispersion, 55.0);
+      expect(LitchiFlavour.polarIce.vibrancy, 1.40);
+
+      expect(LitchiFlavour.smokedQuartz.name, 'Smoked Quartz');
+      expect(LitchiFlavour.smokedQuartz.frost, 42.0);
+      expect(LitchiFlavour.smokedQuartz.vibrancy, 1.25);
+    });
+
+    test('LitchiFlavour.lerp interpolates vibrancy smoothly', () {
+      final a = LitchiFlavour.dewy.copyWith(vibrancy: 1.0);
+      final b = LitchiFlavour.juicy.copyWith(vibrancy: 1.5);
+
+      final mid = LitchiFlavour.lerp(a, b, 0.5);
+      expect(mid, isNotNull);
+      expect(mid!.vibrancy, closeTo(1.25, 1e-4));
+
+      final start = LitchiFlavour.lerp(a, b, 0.0);
+      expect(start!.vibrancy, closeTo(1.0, 1e-4));
+
+      final end = LitchiFlavour.lerp(a, b, 1.0);
+      expect(end!.vibrancy, closeTo(1.5, 1e-4));
+    });
+
+    test('LitchiFlavour equality and hashCode account for vibrancy', () {
+      final f1 = LitchiFlavour.dewy.copyWith(vibrancy: 1.15);
+      final f2 = LitchiFlavour.dewy.copyWith(vibrancy: 1.15);
+      final f3 = LitchiFlavour.dewy.copyWith(vibrancy: 1.45);
+
+      expect(f1, equals(f2));
+      expect(f1.hashCode, equals(f2.hashCode));
+      expect(f1, isNot(equals(f3)));
+    });
+
+    testWidgets('LitchiGlass renders with vibrancy filter applied to backdrop', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: LitchiGlass(
+                vibrancy: 1.4,
+                child: const Text('Vibrant Glass Content'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Vibrant Glass Content'), findsOneWidget);
+      final backdrop = tester.widget<BackdropFilter>(find.byType(BackdropFilter));
+      expect(backdrop.filter, isNotNull);
+    });
+
+    testWidgets('LitchiScope propagates vibrancy to child glass', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiScope(
+              vibrancy: 1.5,
+              child: LitchiGlass(
+                child: const Text('Scoped Vibrant Glass'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Scoped Vibrant Glass'), findsOneWidget);
+    });
+
+    testWidgets('LitchiCard and controls accept vibrancy parameter', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                LitchiCard(
+                  vibrancy: 1.35,
+                  child: const Text('Card with Vibrancy'),
+                ),
+                LitchiButton(
+                  vibrancy: 1.3,
+                  onPressed: () {},
+                  child: const Text('Button with Vibrancy'),
+                ),
+                LitchiChip(
+                  vibrancy: 1.25,
+                  label: const Text('Chip with Vibrancy'),
+                ),
+                LitchiTextField(
+                  vibrancy: 1.2,
+                  hintText: 'Search...',
+                ),
+                LitchiSegmentedControl<int>(
+                  vibrancy: 1.3,
+                  selectedValue: 0,
+                  onValueChanged: (_) {},
+                  segments: const [
+                    LitchiSegment(value: 0, label: Text('One')),
+                    LitchiSegment(value: 1, label: Text('Two')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Card with Vibrancy'), findsOneWidget);
+      expect(find.text('Button with Vibrancy'), findsOneWidget);
+      expect(find.text('Chip with Vibrancy'), findsOneWidget);
+      expect(find.text('Search...'), findsOneWidget);
+      expect(find.text('One'), findsOneWidget);
+    });
+  });
 }

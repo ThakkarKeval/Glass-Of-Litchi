@@ -23,6 +23,7 @@ class LitchiButton extends StatefulWidget {
     this.frost,
     this.splay,
     this.noise,
+    this.vibrancy,
     this.enableHaptics = true,
     this.enableBlur = true,
     this.shaderRefraction = false,
@@ -41,6 +42,7 @@ class LitchiButton extends StatefulWidget {
     double frost = 25.0,
     double splay = 40.0,
     double noise = 0.0,
+    double vibrancy = 1.0,
     double cornerSmoothing = 0.6,
     BorderRadiusGeometry borderRadius = const BorderRadius.all(
       Radius.circular(16.0),
@@ -67,6 +69,7 @@ class LitchiButton extends StatefulWidget {
       frost: frost,
       splay: splay,
       noise: noise,
+      vibrancy: vibrancy,
       enableHaptics: enableHaptics,
       enableBlur: enableBlur,
       shaderRefraction: shaderRefraction,
@@ -115,6 +118,9 @@ class LitchiButton extends StatefulWidget {
 
   /// Optional override for the micro-surface roughness / film grain noise (0% to 100%).
   final double? noise;
+
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
 
   /// Whether to invoke light haptic feedback on tap down.
   final bool enableHaptics;
@@ -225,6 +231,7 @@ class _LitchiButtonState extends State<LitchiButton>
             frost: widget.frost,
             splay: widget.splay,
             noise: widget.noise,
+            vibrancy: widget.vibrancy,
             enableBlur: widget.enableBlur,
             shaderRefraction: widget.shaderRefraction,
             child: DefaultTextStyle(

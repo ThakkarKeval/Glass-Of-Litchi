@@ -45,6 +45,7 @@ class LitchiTabBar extends StatefulWidget {
     this.activeColor = Colors.white,
     this.inactiveColor = Colors.white60,
     this.padding = const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+    this.vibrancy,
     this.enableHaptics = true,
     this.enableBlur = true,
     this.shaderRefraction = false,
@@ -88,6 +89,9 @@ class LitchiTabBar extends StatefulWidget {
 
   /// Whether backdrop blur is enabled for the navigation bar container.
   final bool enableBlur;
+
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
 
   /// Whether GPU fragment shader optical refraction and dispersion are enabled.
   ///
@@ -161,6 +165,7 @@ class _LitchiTabBarState extends State<LitchiTabBar>
       borderRadius: widget.borderRadius,
       cornerSmoothing: widget.cornerSmoothing,
       padding: widget.padding,
+      vibrancy: widget.vibrancy,
       enableBlur: widget.enableBlur,
       shaderRefraction: widget.shaderRefraction,
       child: LayoutBuilder(

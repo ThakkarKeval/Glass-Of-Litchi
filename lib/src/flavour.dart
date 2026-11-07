@@ -109,6 +109,40 @@ LinearGradient createSpecularBorderGradient({
   );
 }
 
+/// Calculates a 4x5 color matrix for background saturation and contrast vibrancy,
+/// inspired by Apple's `UIVibrancyEffect` and visionOS optical glass.
+///
+/// A [vibrancy] factor of `1.0` produces the identity matrix. Values above `1.0`
+/// (e.g. `1.2` to `1.5`) boost the chromatic saturation of background colors
+/// beneath the glass, preventing heavy Gaussian blur from turning colorful
+/// backgrounds into a dull, desaturated gray haze.
+List<double> createVibrancyMatrix(double vibrancy) {
+  final v = vibrancy.clamp(0.0, 3.0);
+  const lumR = 0.2126;
+  const lumG = 0.7152;
+  const lumB = 0.0722;
+
+  final inv = 1.0 - v;
+  final r1 = inv * lumR + v;
+  final r2 = inv * lumG;
+  final r3 = inv * lumB;
+
+  final g1 = inv * lumR;
+  final g2 = inv * lumG + v;
+  final g3 = inv * lumB;
+
+  final b1 = inv * lumR;
+  final b2 = inv * lumG;
+  final b3 = inv * lumB + v;
+
+  return [
+    r1, r2, r3, 0.0, 0.0,
+    g1, g2, g3, 0.0, 0.0,
+    b1, b2, b3, 0.0, 0.0,
+    0.0, 0.0, 0.0, 1.0, 0.0,
+  ];
+}
+
 /// Pre-configured styling flavours for [LitchiGlass] and [LitchiCard] that map
 /// directly to popular Figma Glass effect parameters.
 class LitchiFlavour {
@@ -129,6 +163,7 @@ class LitchiFlavour {
     this.specularOpacity = 0.6,
     this.secondarySpecularOpacity = 0.35,
     this.noise = 0.0,
+    this.vibrancy = 1.0,
     this.fallbackColor = const Color(0xCC1E1E24),
   });
 
@@ -143,6 +178,7 @@ class LitchiFlavour {
     double frost = 25.0,
     double splay = 40.0,
     double noise = 0.0,
+    double vibrancy = 1.0,
     Color tintColor = const Color(0x1AFFFFFF),
     double borderWidth = 1.2,
     bool innerSheen = true,
@@ -167,6 +203,7 @@ class LitchiFlavour {
       specularOpacity: specular,
       secondarySpecularOpacity: specular * 0.5,
       noise: noise,
+      vibrancy: vibrancy,
       fallbackColor: fallbackColor,
     );
   }
@@ -219,6 +256,13 @@ class LitchiFlavour {
   /// Micro-surface roughness / film grain noise percentage (0% to 100%).
   final double noise;
 
+  /// Background saturation vibrancy boost multiplier (1.0 = neutral, > 1.0 = vibrant).
+  ///
+  /// Following Apple's glass vibrancy design, this boosts the saturation of
+  /// colors directly behind the glass so that wallpapers, photos, or gradients
+  /// pop with luminous brilliance rather than washing out under Gaussian blur.
+  final double vibrancy;
+
   /// Solid or semi-opaque fallback color when blur is disabled (e.g. on low-end devices).
   final Color fallbackColor;
 
@@ -265,6 +309,7 @@ class LitchiFlavour {
     double? specularOpacity,
     double? secondarySpecularOpacity,
     double? noise,
+    double? vibrancy,
     Color? fallbackColor,
   }) {
     return LitchiFlavour(
@@ -285,6 +330,7 @@ class LitchiFlavour {
       secondarySpecularOpacity:
           secondarySpecularOpacity ?? this.secondarySpecularOpacity,
       noise: noise ?? this.noise,
+      vibrancy: vibrancy ?? this.vibrancy,
       fallbackColor: fallbackColor ?? this.fallbackColor,
     );
   }
@@ -322,6 +368,7 @@ class LitchiFlavour {
           ) ??
           a.secondarySpecularOpacity,
       noise: ui.lerpDouble(a.noise, b.noise, t) ?? a.noise,
+      vibrancy: ui.lerpDouble(a.vibrancy, b.vibrancy, t) ?? a.vibrancy,
       fallbackColor:
           Color.lerp(a.fallbackColor, b.fallbackColor, t) ?? a.fallbackColor,
     );
@@ -347,6 +394,7 @@ class LitchiFlavour {
         other.specularOpacity == specularOpacity &&
         other.secondarySpecularOpacity == secondarySpecularOpacity &&
         other.noise == noise &&
+        other.vibrancy == vibrancy &&
         other.fallbackColor == fallbackColor;
   }
 
@@ -368,6 +416,7 @@ class LitchiFlavour {
     specularOpacity,
     secondarySpecularOpacity,
     noise,
+    vibrancy,
     fallbackColor,
   );
 
@@ -387,6 +436,7 @@ class LitchiFlavour {
     specularOpacity: 0.48,
     secondarySpecularOpacity: 0.22,
     noise: 0.0,
+    vibrancy: 1.15,
     fallbackColor: Color(0xD912151D),
   );
 
@@ -406,6 +456,7 @@ class LitchiFlavour {
     specularOpacity: 0.75,
     secondarySpecularOpacity: 0.45,
     noise: 4.0,
+    vibrancy: 1.40,
     fallbackColor: Color(0xEB2A1820),
   );
 
@@ -425,6 +476,7 @@ class LitchiFlavour {
     specularOpacity: 0.55,
     secondarySpecularOpacity: 0.3,
     noise: 14.0,
+    vibrancy: 1.10,
     fallbackColor: Color(0xEE252530),
   );
 
@@ -444,6 +496,7 @@ class LitchiFlavour {
     specularOpacity: 0.85,
     secondarySpecularOpacity: 0.5,
     noise: 0.0,
+    vibrancy: 1.25,
     fallbackColor: Color(0xCC1A1A22),
   );
 
@@ -463,6 +516,7 @@ class LitchiFlavour {
     specularOpacity: 0.7,
     secondarySpecularOpacity: 0.4,
     noise: 6.0,
+    vibrancy: 1.05,
     fallbackColor: Color(0xEE2A1E24),
   );
 
@@ -482,6 +536,7 @@ class LitchiFlavour {
     specularOpacity: 0.65,
     secondarySpecularOpacity: 0.4,
     noise: 4.0,
+    vibrancy: 1.30,
     fallbackColor: Color(0xEA2A1522),
   );
 
@@ -501,6 +556,70 @@ class LitchiFlavour {
     specularOpacity: 0.7,
     secondarySpecularOpacity: 0.45,
     noise: 4.0,
+    vibrancy: 1.35,
     fallbackColor: Color(0xEA2A2214),
+  );
+
+  /// Ultra-reflective liquid chrome & mercury glass with deep metallic refraction,
+  /// sleek silver-slate sheen, and brilliant specular peaks.
+  static const LitchiFlavour liquidMercury = LitchiFlavour(
+    name: 'Liquid Mercury',
+    lightAngle: 120.0,
+    lightPercent: 96.0,
+    refraction: 32.0,
+    depth: 14.0,
+    dispersion: 40.0,
+    frost: 16.0,
+    splay: 30.0,
+    blurSigma: 14.0,
+    tintColor: Color(0x228B9BB4),
+    borderWidth: 1.5,
+    specularOpacity: 0.90,
+    secondarySpecularOpacity: 0.55,
+    noise: 1.0,
+    vibrancy: 1.15,
+    fallbackColor: Color(0xEE1E232B),
+  );
+
+  /// High-dispersion glacial ice-cut crystal with electric cerulean refraction,
+  /// razor-sharp splay, and vibrant starlight luminance.
+  static const LitchiFlavour polarIce = LitchiFlavour(
+    name: 'Polar Ice',
+    lightAngle: 135.0,
+    lightPercent: 88.0,
+    refraction: 28.0,
+    depth: 10.0,
+    dispersion: 55.0,
+    frost: 20.0,
+    splay: 40.0,
+    blurSigma: 16.0,
+    tintColor: Color(0x2038BDF8),
+    borderWidth: 1.3,
+    specularOpacity: 0.82,
+    secondarySpecularOpacity: 0.45,
+    noise: 3.0,
+    vibrancy: 1.40,
+    fallbackColor: Color(0xEE102436),
+  );
+
+  /// Luxurious deep obsidian & amber-bronze glass tailored for OLED dark modes,
+  /// with velvety diffusion and rich shadow depth.
+  static const LitchiFlavour smokedQuartz = LitchiFlavour(
+    name: 'Smoked Quartz',
+    lightAngle: 135.0,
+    lightPercent: 70.0,
+    refraction: 22.0,
+    depth: 12.0,
+    dispersion: 20.0,
+    frost: 42.0,
+    splay: 55.0,
+    blurSigma: 28.0,
+    tintColor: Color(0x381E1B18),
+    borderWidth: 1.2,
+    specularOpacity: 0.58,
+    secondarySpecularOpacity: 0.32,
+    noise: 8.0,
+    vibrancy: 1.25,
+    fallbackColor: Color(0xF0161412),
   );
 }

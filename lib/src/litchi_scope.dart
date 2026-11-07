@@ -25,6 +25,7 @@ class LitchiScope extends InheritedWidget {
     this.lightPercent,
     this.dispersion,
     this.noise,
+    this.vibrancy,
     this.cornerSmoothing = 0.6,
     this.liteMode = false,
     this.shaderRefraction,
@@ -46,6 +47,10 @@ class LitchiScope extends InheritedWidget {
   /// Optional override for frosted micro-surface roughness / film grain noise (0% to 100%).
   /// Inherited by child glass widgets when not explicitly overridden.
   final double? noise;
+
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  /// Inherited by child glass widgets when not explicitly overridden.
+  final double? vibrancy;
 
   /// Apple continuous corner squircle curvature factor (0.0 to 1.0, default: 0.6).
   /// Inherited by child glass widgets when not explicitly overridden.
@@ -84,6 +89,7 @@ class LitchiScope extends InheritedWidget {
         oldWidget.lightPercent != lightPercent ||
         oldWidget.dispersion != dispersion ||
         oldWidget.noise != noise ||
+        oldWidget.vibrancy != vibrancy ||
         oldWidget.cornerSmoothing != cornerSmoothing ||
         oldWidget.shaderRefraction != shaderRefraction ||
         oldWidget.effectiveLiteMode != effectiveLiteMode;

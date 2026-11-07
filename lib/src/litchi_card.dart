@@ -30,6 +30,7 @@ class LitchiCard extends StatefulWidget {
     this.frost,
     this.splay,
     this.noise,
+    this.vibrancy,
     this.specularOpacity,
     this.secondarySpecularOpacity,
     this.onTap,
@@ -55,6 +56,7 @@ class LitchiCard extends StatefulWidget {
     double frost = 25.0,
     double splay = 40.0,
     double noise = 0.0,
+    double vibrancy = 1.0,
     double cornerSmoothing = 0.6,
     Color tintColor = const Color(0x1AFFFFFF),
     BorderRadiusGeometry borderRadius =
@@ -88,6 +90,7 @@ class LitchiCard extends StatefulWidget {
       frost: frost,
       splay: splay,
       noise: noise,
+      vibrancy: vibrancy,
       tint: tintColor,
       elevation: depth * 1.2,
       onTap: onTap,
@@ -155,6 +158,9 @@ class LitchiCard extends StatefulWidget {
 
   /// Optional override for the micro-surface roughness / film grain noise (0% to 100%).
   final double? noise;
+
+  /// Optional override for background saturation vibrancy multiplier (e.g. 1.0 to 1.5).
+  final double? vibrancy;
 
   /// Optional override for the primary specular highlight opacity.
   final double? specularOpacity;
@@ -260,6 +266,7 @@ class _LitchiCardState extends State<LitchiCard>
       frost: widget.frost,
       splay: widget.splay,
       noise: widget.noise,
+      vibrancy: widget.vibrancy,
       specularOpacity: widget.specularOpacity,
       secondarySpecularOpacity: widget.secondarySpecularOpacity,
       enableBlur: widget.enableBlur,

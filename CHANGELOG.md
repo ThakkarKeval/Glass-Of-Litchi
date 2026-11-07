@@ -21,3 +21,9 @@
   glass components, ensuring glass strictly refracts whatever is directly beneath itself with
   native hardware Gaussian blur, eliminating cross-card background bleed and scroll ghosting.
 * Corrected fragment shader UV mapping to 1:1 fragment-space, eliminating screen-wide center zoom.
+* Apple/visionOS Vibrancy Effect (`vibrancy`):
+  * Hardware-accelerated color saturation matrix (`createVibrancyMatrix`) composed directly with `BackdropFilter`, boosting background colors so artwork, photos, and starfields pop vibrantly through frosted glass.
+* 3 new signature luxury presets:
+  * `LitchiFlavour.liquidMercury`: Ultra-reflective liquid chrome/mercury with metallic refraction and crisp specular peaks.
+  * `LitchiFlavour.polarIce`: High-dispersion glacial ice crystal with electric cerulean chromatic fringing.
+  * `LitchiFlavour.smokedQuartz`: Velvety dark obsidian and bronze glass tailored for OLED dark modes.
