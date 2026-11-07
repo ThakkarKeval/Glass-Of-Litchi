@@ -47,7 +47,7 @@ class LitchiTabBar extends StatefulWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
     this.enableHaptics = true,
     this.enableBlur = true,
-    this.shaderRefraction = true,
+    this.shaderRefraction = false,
   }) : assert(items.length >= 2, 'LitchiTabBar requires at least 2 items.');
 
   /// The list of tab destinations.
@@ -90,6 +90,9 @@ class LitchiTabBar extends StatefulWidget {
   final bool enableBlur;
 
   /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  ///
+  /// See [LitchiGlass.shaderRefraction] for a known limitation when this
+  /// widget scrolls inside a `ListView`/`CustomScrollView`.
   final bool shaderRefraction;
 
   @override
@@ -142,10 +145,9 @@ class _LitchiTabBarState extends State<LitchiTabBar>
   @override
   Widget build(BuildContext context) {
     // Ultra-clean crystal glass pill without milky chalk fog
-    final effectivePillColor = widget.pillColor ??
-        const Color(0x18FFFFFF);
-    final effectivePillBorderColor = widget.pillBorderColor ??
-        Colors.white.withValues(alpha: 0.22);
+    final effectivePillColor = widget.pillColor ?? const Color(0x18FFFFFF);
+    final effectivePillBorderColor =
+        widget.pillBorderColor ?? Colors.white.withValues(alpha: 0.22);
 
     final effectiveFlavour = widget.flavour.copyWith(
       tintColor: const Color(0x0AFFFFFF),
@@ -197,7 +199,10 @@ class _LitchiTabBarState extends State<LitchiTabBar>
                   );
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 2.0,
+                  ),
                   decoration: ShapeDecoration(
                     color: effectivePillColor,
                     shape: _SquircleBorder(
@@ -226,51 +231,70 @@ class _LitchiTabBarState extends State<LitchiTabBar>
                   final isSelected = widget.selectedIndex == index;
 
                   return Expanded(
-                    child: GestureDetector(
+                    child: Semantics(
+                      container: true,
+                      label: item.label,
+                      selected: isSelected,
+                      button: true,
                       onTap: () => _handleTabTap(index),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            fontSize: 13.0,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? widget.activeColor : widget.inactiveColor,
-                            letterSpacing: -0.1,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isSelected ? (item.selectedIcon ?? item.icon) : item.icon,
-                                size: 19.0,
-                                color: isSelected ? widget.activeColor : widget.inactiveColor,
+                      child: GestureDetector(
+                        onTap: () => _handleTabTap(index),
+                        behavior: HitTestBehavior.opaque,
+                        child: ExcludeSemantics(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.activeColor
+                                    : widget.inactiveColor,
+                                letterSpacing: -0.1,
                               ),
-                              const SizedBox(width: 7.0),
-                              Text(item.label),
-                              if (item.badgeText != null) ...[
-                                const SizedBox(width: 5.0),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6.0,
-                                    vertical: 2.0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? (item.selectedIcon ?? item.icon)
+                                        : item.icon,
+                                    size: 19.0,
+                                    color: isSelected
+                                        ? widget.activeColor
+                                        : widget.inactiveColor,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF5277),
-                                    borderRadius: BorderRadius.circular(10.0),
-                                  ),
-                                  child: Text(
-                                    item.badgeText!,
-                                    style: const TextStyle(
-                                      fontSize: 10.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                  const SizedBox(width: 7.0),
+                                  Text(item.label),
+                                  if (item.badgeText != null) ...[
+                                    const SizedBox(width: 5.0),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6.0,
+                                        vertical: 2.0,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF5277),
+                                        borderRadius: BorderRadius.circular(
+                                          10.0,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.badgeText!,
+                                        style: const TextStyle(
+                                          fontSize: 10.0,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'color_dots_background.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 import 'glass_list_screen.dart';
@@ -113,10 +115,11 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
   double _dispersion = 35.0;
   double _frost = 26.0;
   double _splay = 50.0;
+  double _noise = 4.0;
   double _cornerSmoothing = 0.6;
 
   bool _enableBlur = true;
-  bool _shaderRefraction = true;
+  bool _shaderRefraction = false;
   int _counter = 0;
 
   final List<LitchiFlavour> _flavours = const [
@@ -139,6 +142,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       _dispersion = flavour.dispersion;
       _frost = flavour.frost;
       _splay = flavour.splay;
+      _noise = flavour.noise;
       _cornerSmoothing = 0.6;
     });
   }
@@ -153,9 +157,10 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       _dispersion = 35.0;
       _frost = 26.0;
       _splay = 50.0;
+      _noise = 4.0;
       _cornerSmoothing = 0.6;
       _enableBlur = true;
-      _shaderRefraction = true;
+      _shaderRefraction = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -183,59 +188,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Luxury dark obsidian & slate canvas
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF090B10),
-                  Color(0xFF0E131C),
-                  Color(0xFF0B0E14),
-                ],
-                stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-
-          // Luminous lychee blush & glacier cyan blooms
-          Positioned(
-            top: -40,
-            left: -60,
-            child: Container(
-              width: 380,
-              height: 380,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x2CE0537A), // Soft ethereal lychee rose glow
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.70],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 60,
-            right: -80,
-            child: Container(
-              width: 380,
-              height: 380,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x2038BDF8), // Soft frosted glacier cyan mist
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.70],
-                ),
-              ),
-            ),
-          ),
+          const AmbientMeshBackground(),
 
           // Main interactive content
           SafeArea(
@@ -287,17 +240,16 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                       physics: const ClampingScrollPhysics(),
                       child: Row(
                         children: _flavours.map((flavour) {
-                          final isSelected = _selectedFlavour.name == flavour.name;
+                          final isSelected =
+                              _selectedFlavour.name == flavour.name;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
+                            child: LitchiChip(
                               label: Text(flavour.name),
                               selected: isSelected,
-                              onSelected: (selected) {
-                                if (selected) {
-                                  _applyFlavour(flavour);
-                                }
-                              },
+                              flavour: LitchiFlavour.dewy,
+                              selectedFlavour: flavour,
+                              onSelected: (_) => _applyFlavour(flavour),
                             ),
                           );
                         }).toList(),
@@ -316,6 +268,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                       dispersion: _dispersion,
                       frost: _frost,
                       splay: _splay,
+                      noise: _noise,
                       cornerSmoothing: _cornerSmoothing,
                       enableBlur: _enableBlur,
                       shaderRefraction: _shaderRefraction,
@@ -562,6 +515,17 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                                 setState(() => _cornerSmoothing = val),
                           ),
 
+                          // 9. Frosted Micro-Noise
+                          _buildSliderRow(
+                            label: 'Surface Noise',
+                            valueText:
+                                '${_noise.round()}% (Anti-Banding Film Grain)',
+                            value: _noise,
+                            min: 0.0,
+                            max: 40.0,
+                            onChanged: (val) => setState(() => _noise = val),
+                          ),
+
                           const Divider(height: 28.0, color: Colors.white24),
 
                           // Generated Figma Code snippet
@@ -591,6 +555,7 @@ class _LitchiShowcaseScreenState extends State<LitchiShowcaseScreen> {
                               '  dispersion: ${_dispersion.round()}.0,\n'
                               '  frost: ${_frost.round()}.0,\n'
                               '  splay: ${_splay.round()}.0,\n'
+                              '  noise: ${_noise.round()}.0,\n'
                               '  cornerSmoothing: ${_cornerSmoothing.toStringAsFixed(2)},\n'
                               '  child: ...,\n'
                               ')',

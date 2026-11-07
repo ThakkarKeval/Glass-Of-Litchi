@@ -22,9 +22,10 @@ class LitchiButton extends StatefulWidget {
     this.dispersion,
     this.frost,
     this.splay,
+    this.noise,
     this.enableHaptics = true,
     this.enableBlur = true,
-    this.shaderRefraction = true,
+    this.shaderRefraction = false,
   });
 
   /// Factory constructor to instantiate a [LitchiButton] directly from Figma Glass properties.
@@ -39,14 +40,18 @@ class LitchiButton extends StatefulWidget {
     double dispersion = 20.0,
     double frost = 25.0,
     double splay = 40.0,
+    double noise = 0.0,
     double cornerSmoothing = 0.6,
-    BorderRadiusGeometry borderRadius =
-        const BorderRadius.all(Radius.circular(16.0)),
-    EdgeInsetsGeometry padding =
-        const EdgeInsets.symmetric(horizontal: 24.0, vertical: 14.0),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(16.0),
+    ),
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(
+      horizontal: 24.0,
+      vertical: 14.0,
+    ),
     bool enableHaptics = true,
     bool enableBlur = true,
-    bool shaderRefraction = true,
+    bool shaderRefraction = false,
   }) {
     return LitchiButton(
       key: key,
@@ -61,6 +66,7 @@ class LitchiButton extends StatefulWidget {
       dispersion: dispersion,
       frost: frost,
       splay: splay,
+      noise: noise,
       enableHaptics: enableHaptics,
       enableBlur: enableBlur,
       shaderRefraction: shaderRefraction,
@@ -107,6 +113,9 @@ class LitchiButton extends StatefulWidget {
   /// Angular spread of the specular highlight along the perimeter (0% to 100%).
   final double? splay;
 
+  /// Optional override for the micro-surface roughness / film grain noise (0% to 100%).
+  final double? noise;
+
   /// Whether to invoke light haptic feedback on tap down.
   final bool enableHaptics;
 
@@ -114,6 +123,9 @@ class LitchiButton extends StatefulWidget {
   final bool enableBlur;
 
   /// Whether GPU fragment shader optical refraction and dispersion are enabled.
+  ///
+  /// See [LitchiGlass.shaderRefraction] for a known limitation when this
+  /// widget scrolls inside a `ListView`/`CustomScrollView`.
   final bool shaderRefraction;
 
   @override
@@ -134,12 +146,14 @@ class _LitchiButtonState extends State<LitchiButton>
       duration: const Duration(milliseconds: 100),
       reverseDuration: const Duration(milliseconds: 160),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _opacityAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -177,45 +191,51 @@ class _LitchiButtonState extends State<LitchiButton>
             specularOpacity: 0.1,
           );
 
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
+    return Semantics(
+      button: true,
+      enabled: isEnabled,
       onTap: widget.onPressed,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Opacity(
-              opacity: isEnabled ? _opacityAnimation.value : 0.5,
-              child: child,
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: widget.onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Opacity(
+                opacity: isEnabled ? _opacityAnimation.value : 0.5,
+                child: child,
+              ),
+            );
+          },
+          child: LitchiGlass(
+            flavour: effectiveFlavour,
+            borderRadius: widget.borderRadius,
+            cornerSmoothing: widget.cornerSmoothing,
+            padding: widget.padding,
+            lightAngle: widget.lightAngle,
+            lightPercent: widget.lightPercent,
+            refraction: widget.refraction,
+            depth: widget.depth,
+            dispersion: widget.dispersion,
+            frost: widget.frost,
+            splay: widget.splay,
+            noise: widget.noise,
+            enableBlur: widget.enableBlur,
+            shaderRefraction: widget.shaderRefraction,
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16.0,
+                letterSpacing: 0.2,
+              ),
+              child: widget.child,
             ),
-          );
-        },
-        child: LitchiGlass(
-          flavour: effectiveFlavour,
-          borderRadius: widget.borderRadius,
-          cornerSmoothing: widget.cornerSmoothing,
-          padding: widget.padding,
-          lightAngle: widget.lightAngle,
-          lightPercent: widget.lightPercent,
-          refraction: widget.refraction,
-          depth: widget.depth,
-          dispersion: widget.dispersion,
-          frost: widget.frost,
-          splay: widget.splay,
-          enableBlur: widget.enableBlur,
-          shaderRefraction: widget.shaderRefraction,
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 16.0,
-              letterSpacing: 0.2,
-            ),
-            child: widget.child,
           ),
         ),
       ),

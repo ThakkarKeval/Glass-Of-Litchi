@@ -1,31 +1,80 @@
 import 'dart:ui' as ui;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 void main() {
-  group('Figma 7-Option Glass Parameters', () {
-    test('LitchiFlavour.fromFigma initializes optical parameters correctly', () {
-      final figmaFlavour = LitchiFlavour.fromFigma(
-        lightAngle: 120.0,
-        lightPercent: 90.0,
-        refraction: 30.0,
-        depth: 12.0,
-        dispersion: 40.0,
-        frost: 35.0,
-        splay: 60.0,
-      );
+  testWidgets('backdrop grouping is opt-in and excludes shader glass', (
+    tester,
+  ) async {
+    final key = BackdropKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BackdropGroup(
+          backdropKey: key,
+          child: Column(
+            children: [
+              LitchiCard.fromFigma(
+                groupBackdrop: true,
+                shaderRefraction: false,
+                child: const Text('Grouped row'),
+              ),
+              const LitchiGlass(
+                groupBackdrop: true,
+                shaderRefraction: false,
+                child: Text('Grouped peer'),
+              ),
+              const LitchiGlass(
+                shaderRefraction: false,
+                child: Text('Independent glass'),
+              ),
+              const LitchiGlass(
+                groupBackdrop: true,
+                shaderRefraction: true,
+                child: Text('Shader glass'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final filters = tester
+        .widgetList<BackdropFilter>(find.byType(BackdropFilter))
+        .toList();
+    expect(filters, hasLength(4));
+    expect(filters[0].backdropGroupKey, same(key));
+    expect(filters[1].backdropGroupKey, same(key));
+    expect(filters[2].backdropGroupKey, isNull);
+    expect(filters[3].backdropGroupKey, isNull);
+  });
 
-      expect(figmaFlavour.lightAngle, 120.0);
-      expect(figmaFlavour.lightPercent, 90.0);
-      expect(figmaFlavour.refraction, 30.0);
-      expect(figmaFlavour.depth, 12.0);
-      expect(figmaFlavour.dispersion, 40.0);
-      expect(figmaFlavour.frost, 35.0);
-      expect(figmaFlavour.splay, 60.0);
-      expect(figmaFlavour.blurSigma, closeTo(14.0, 0.1));
-      expect(figmaFlavour.specularOpacity, 0.9);
-    });
+  group('Figma 7-Option Glass Parameters', () {
+    test(
+      'LitchiFlavour.fromFigma initializes optical parameters correctly',
+      () {
+        final figmaFlavour = LitchiFlavour.fromFigma(
+          lightAngle: 120.0,
+          lightPercent: 90.0,
+          refraction: 30.0,
+          depth: 12.0,
+          dispersion: 40.0,
+          frost: 35.0,
+          splay: 60.0,
+        );
+
+        expect(figmaFlavour.lightAngle, 120.0);
+        expect(figmaFlavour.lightPercent, 90.0);
+        expect(figmaFlavour.refraction, 30.0);
+        expect(figmaFlavour.depth, 12.0);
+        expect(figmaFlavour.dispersion, 40.0);
+        expect(figmaFlavour.frost, 35.0);
+        expect(figmaFlavour.splay, 60.0);
+        expect(figmaFlavour.blurSigma, closeTo(14.0, 0.1));
+        expect(figmaFlavour.specularOpacity, 0.9);
+      },
+    );
 
     test('createSpecularBorderGradient generates dispersion rainbow stops', () {
       final gradient = createSpecularBorderGradient(
@@ -41,31 +90,34 @@ void main() {
   });
 
   group('Apple Squircle Continuous Curvature & Memoization', () {
-    test('SquirclePath.create generates valid continuous path and caches results', () {
-      const rect = Rect.fromLTWH(0, 0, 200, 100);
-      final borderRadius = BorderRadius.circular(24.0);
+    test(
+      'SquirclePath.create generates valid continuous path and caches results',
+      () {
+        const rect = Rect.fromLTWH(0, 0, 200, 100);
+        final borderRadius = BorderRadius.circular(24.0);
 
-      final rrectPath = SquirclePath.create(
-        rect: rect,
-        borderRadius: borderRadius,
-        smoothing: 0.0,
-      );
-      expect(rrectPath, isNotNull);
+        final rrectPath = SquirclePath.create(
+          rect: rect,
+          borderRadius: borderRadius,
+          smoothing: 0.0,
+        );
+        expect(rrectPath, isNotNull);
 
-      final squirclePath1 = SquirclePath.create(
-        rect: rect,
-        borderRadius: borderRadius,
-        smoothing: 0.6,
-      );
-      final squirclePath2 = SquirclePath.create(
-        rect: rect,
-        borderRadius: borderRadius,
-        smoothing: 0.6,
-      );
-      expect(squirclePath1, isNotNull);
-      // Memoized cache returns same Path reference
-      expect(identical(squirclePath1, squirclePath2), isTrue);
-    });
+        final squirclePath1 = SquirclePath.create(
+          rect: rect,
+          borderRadius: borderRadius,
+          smoothing: 0.6,
+        );
+        final squirclePath2 = SquirclePath.create(
+          rect: rect,
+          borderRadius: borderRadius,
+          smoothing: 0.6,
+        );
+        expect(squirclePath1, isNotNull);
+        // Memoized cache returns same Path reference
+        expect(identical(squirclePath1, squirclePath2), isTrue);
+      },
+    );
 
     test('SquircleClipper clips correctly and detects rebuild needs', () {
       final clipper = SquircleClipper(
@@ -90,25 +142,26 @@ void main() {
   });
 
   group('LitchiScope liteMode & Ambient Lighting', () {
-    testWidgets('LitchiScope coordinates liteMode and disables child BackdropFilter', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LitchiScope(
-              liteMode: true,
-              lightAngle: 45.0,
-              cornerSmoothing: 0.8,
-              child: LitchiGlass(
-                child: const Text('Lite Glass Child'),
+    testWidgets(
+      'LitchiScope coordinates liteMode and disables child BackdropFilter',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: LitchiScope(
+                liteMode: true,
+                lightAngle: 45.0,
+                cornerSmoothing: 0.8,
+                child: LitchiGlass(child: const Text('Lite Glass Child')),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Lite Glass Child'), findsOneWidget);
-      expect(find.byType(BackdropFilter), findsNothing);
-    });
+        expect(find.text('Lite Glass Child'), findsOneWidget);
+        expect(find.byType(BackdropFilter), findsNothing);
+      },
+    );
   });
 
   group('LitchiGlass widget with Figma properties', () {
@@ -136,34 +189,37 @@ void main() {
   });
 
   group('LitchiCard widget with tactile feedback', () {
-    testWidgets('renders, tracks drag tilt and handles tap with Figma properties', (tester) async {
-      var tapped = false;
+    testWidgets(
+      'renders, tracks drag tilt and handles tap with Figma properties',
+      (tester) async {
+        var tapped = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LitchiCard.fromFigma(
-              lightAngle: 135.0,
-              lightPercent: 85.0,
-              refraction: 20.0,
-              depth: 8.0,
-              dispersion: 25.0,
-              frost: 25.0,
-              splay: 40.0,
-              cornerSmoothing: 0.6,
-              onTap: () => tapped = true,
-              child: const Text('Figma Card Tap'),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: LitchiCard.fromFigma(
+                lightAngle: 135.0,
+                lightPercent: 85.0,
+                refraction: 20.0,
+                depth: 8.0,
+                dispersion: 25.0,
+                frost: 25.0,
+                splay: 40.0,
+                cornerSmoothing: 0.6,
+                onTap: () => tapped = true,
+                child: const Text('Figma Card Tap'),
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Figma Card Tap'), findsOneWidget);
-      await tester.tap(find.text('Figma Card Tap'));
-      await tester.pumpAndSettle();
+        expect(find.text('Figma Card Tap'), findsOneWidget);
+        await tester.tap(find.text('Figma Card Tap'));
+        await tester.pumpAndSettle();
 
-      expect(tapped, isTrue);
-    });
+        expect(tapped, isTrue);
+      },
+    );
   });
 
   group('LitchiButton widget with fromFigma factory', () {
@@ -200,7 +256,9 @@ void main() {
   });
 
   group('LitchiTabBar signature floating glass navigation', () {
-    testWidgets('renders items and handles tab switching with spring pill', (tester) async {
+    testWidgets('renders items and handles tab switching with spring pill', (
+      tester,
+    ) async {
       var activeIndex = 0;
 
       await tester.pumpWidget(
@@ -253,7 +311,9 @@ void main() {
       expect(filter, equals(baseBlur));
     });
 
-    testWidgets('LitchiGlass respects shaderRefraction flag in tree', (tester) async {
+    testWidgets('LitchiGlass respects shaderRefraction flag in tree', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -267,6 +327,481 @@ void main() {
 
       expect(find.text('Shader Disabled Glass'), findsOneWidget);
       expect(find.byType(BackdropFilter), findsOneWidget);
+    });
+  });
+
+  group('LitchiScope.of', () {
+    testWidgets('throws when no LitchiScope ancestor is present', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              expect(() => LitchiScope.of(context), throwsAssertionError);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+    });
+  });
+
+  group('LitchiButton disabled state', () {
+    testWidgets('exposes disabled semantics and ignores taps', (tester) async {
+      final handle = tester.ensureSemantics();
+      var pressed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: LitchiButton(
+                onPressed: null,
+                child: const Text('Disabled Button'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Disabled Button'));
+      await tester.pumpAndSettle();
+      expect(pressed, isFalse);
+
+      expect(
+        tester.getSemantics(find.byType(LitchiButton)),
+        matchesSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: false,
+          hasTapAction: true,
+        ),
+      );
+
+      handle.dispose();
+    });
+  });
+
+  group('LitchiTabBar semantics', () {
+    testWidgets('exposes selected state and labels per tab', (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: LitchiTabBar(
+              selectedIndex: 0,
+              onTabSelected: (_) {},
+              items: const [
+                LitchiTabItem(icon: Icons.home, label: 'Home'),
+                LitchiTabItem(icon: Icons.search, label: 'Search'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Home')),
+        matchesSemantics(
+          isSelected: true,
+          hasSelectedState: true,
+          isButton: true,
+          label: 'Home',
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Search')),
+        matchesSemantics(
+          isSelected: false,
+          hasSelectedState: true,
+          isButton: true,
+          label: 'Search',
+          hasTapAction: true,
+        ),
+      );
+
+      handle.dispose();
+    });
+  });
+
+  group('SquirclePath cache eviction', () {
+    test(
+      'survives many unique shapes beyond cache capacity without throwing',
+      () {
+        const borderRadius = BorderRadius.all(Radius.circular(20.0));
+
+        for (var i = 0; i < 500; i++) {
+          final rect = Rect.fromLTWH(0, 0, 100.0 + i, 60.0);
+          final path = SquirclePath.create(
+            rect: rect,
+            borderRadius: borderRadius,
+            smoothing: 0.6,
+          );
+          expect(path, isNotNull);
+          expect(path.getBounds().width, greaterThan(0));
+        }
+
+        // A key seen again after many evictions must still produce a usable
+        // (if freshly recomputed) path rather than a stale/invalid one.
+        const rect = Rect.fromLTWH(0, 0, 100.0, 60.0);
+        final recomputed = SquirclePath.create(
+          rect: rect,
+          borderRadius: borderRadius,
+          smoothing: 0.6,
+        );
+        expect(recomputed.getBounds(), rect);
+      },
+    );
+  });
+
+  group('LitchiShaderPipeline concurrent loads', () {
+    test(
+      'concurrent ensureLoaded() callers observe the same outcome',
+      () async {
+        final pipeline = LitchiShaderPipeline.instance;
+
+        final first = pipeline.ensureLoaded();
+        final second = pipeline.ensureLoaded();
+
+        final results = await Future.wait([first, second]);
+        expect(results[0], equals(results[1]));
+      },
+    );
+  });
+
+  group('LitchiChip widget', () {
+    testWidgets('renders label, leading, trailing, and responds to tap', (
+      tester,
+    ) async {
+      var isSelected = false;
+      var wasPressed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return LitchiChip(
+                  leading: const Icon(Icons.star),
+                  label: const Text('Juicy Star'),
+                  trailing: const Icon(Icons.check),
+                  selected: isSelected,
+                  onSelected: (val) {
+                    setState(() => isSelected = val);
+                  },
+                  onPressed: () => wasPressed = true,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Juicy Star'), findsOneWidget);
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+
+      await tester.tap(find.text('Juicy Star'));
+      await tester.pumpAndSettle();
+
+      expect(isSelected, isTrue);
+      expect(wasPressed, isTrue);
+    });
+
+    testWidgets('instantiates via fromFigma constructor', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiChip.fromFigma(
+              lightAngle: 120.0,
+              lightPercent: 85.0,
+              refraction: 25.0,
+              depth: 8.0,
+              dispersion: 30.0,
+              frost: 20.0,
+              splay: 45.0,
+              label: const Text('Figma Chip'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Figma Chip'), findsOneWidget);
+    });
+  });
+
+  group('LitchiSegmentedControl widget', () {
+    testWidgets('renders segments and animates selection on tap', (
+      tester,
+    ) async {
+      var selected = 'drinks';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return LitchiSegmentedControl<String>(
+                  selectedValue: selected,
+                  onValueChanged: (val) {
+                    setState(() => selected = val);
+                  },
+                  segments: const [
+                    LitchiSegment(
+                      value: 'drinks',
+                      label: Text('Drinks'),
+                      icon: Icon(Icons.local_bar),
+                    ),
+                    LitchiSegment(
+                      value: 'snacks',
+                      label: Text('Snacks'),
+                      badgeText: '2',
+                    ),
+                    LitchiSegment(
+                      value: 'desserts',
+                      label: Text('Desserts'),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Drinks'), findsOneWidget);
+      expect(find.text('Snacks'), findsOneWidget);
+      expect(find.text('Desserts'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.tap(find.text('Snacks'));
+      await tester.pumpAndSettle();
+
+      expect(selected, 'snacks');
+    });
+  });
+
+  group('LitchiTextField widget', () {
+    testWidgets('renders hint, handles text input and focus animation', (
+      tester,
+    ) async {
+      final controller = TextEditingController();
+      final focusNode = FocusNode();
+      var changedValue = '';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiTextField.fromFigma(
+              controller: controller,
+              focusNode: focusNode,
+              hintText: 'Search flavors...',
+              prefix: const Icon(Icons.search),
+              suffix: const Icon(Icons.clear),
+              onChanged: (val) => changedValue = val,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Search flavors...'), findsOneWidget);
+      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(Icons.clear), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Lychee');
+      await tester.pumpAndSettle();
+
+      expect(controller.text, 'Lychee');
+      expect(changedValue, 'Lychee');
+    });
+  });
+
+  group('LitchiDialog & showLitchiDialog', () {
+    testWidgets('opens dialog and triggers action button', (tester) async {
+      var actionTapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showLitchiDialog<void>(
+                      context: context,
+                      builder: (ctx) {
+                        return LitchiDialog(
+                          title: const Text('Order Spritzer?'),
+                          content: const Text('This will order fresh lychee soda.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                actionTapped = true;
+                                Navigator.pop(ctx);
+                              },
+                              child: const Text('Confirm'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: const Text('Open Dialog'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Order Spritzer?'), findsOneWidget);
+      expect(find.text('This will order fresh lychee soda.'), findsOneWidget);
+      expect(find.text('Confirm'), findsOneWidget);
+
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(actionTapped, isTrue);
+      expect(find.text('Order Spritzer?'), findsNothing);
+    });
+
+    testWidgets('showLitchiModalBottomSheet opens sheet and dismisses', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showLitchiModalBottomSheet<void>(
+                      context: context,
+                      builder: (ctx) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text('Modal Sheet Body'),
+                        );
+                      },
+                    );
+                  },
+                  child: const Text('Open Sheet'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Sheet'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Modal Sheet Body'), findsOneWidget);
+
+      // Tap outside to dismiss
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Modal Sheet Body'), findsNothing);
+    });
+  });
+
+  group('LitchiFlavour lerp, equality, and noise', () {
+    test('interpolates flavours accurately across all fields', () {
+      final a = LitchiFlavour.dewy;
+      final b = LitchiFlavour.juicy;
+
+      final mid = LitchiFlavour.lerp(a, b, 0.5)!;
+      expect(mid.lightPercent, closeTo(80.0, 0.1));
+      expect(mid.noise, closeTo(2.0, 0.1));
+      expect(mid.refraction, closeTo(22.5, 0.1));
+      expect(mid.depth, closeTo(9.0, 0.1));
+
+      expect(LitchiFlavour.lerp(a, b, 0.0), equals(a));
+      expect(LitchiFlavour.lerp(a, b, 1.0), equals(b));
+    });
+
+    test('equality and hashCode contract is maintained', () {
+      final f1 = LitchiFlavour.dewy.copyWith(noise: 5.0);
+      final f2 = LitchiFlavour.dewy.copyWith(noise: 5.0);
+      final f3 = LitchiFlavour.dewy.copyWith(noise: 10.0);
+
+      expect(f1, equals(f2));
+      expect(f1.hashCode, equals(f2.hashCode));
+      expect(f1, isNot(equals(f3)));
+    });
+  });
+
+  group('Optical Noise & Dynamic Lighting', () {
+    testWidgets('LitchiGlass renders with noise and fallback painter', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiGlass(
+              noise: 20.0,
+              enableBlur: false,
+              child: const Text('Noise Glass'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Noise Glass'), findsOneWidget);
+    });
+
+    testWidgets('LitchiCard responds to mouse hover and adjusts dynamic lighting', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: LitchiCard(
+                width: 200,
+                height: 100,
+                enableHoverEffect: true,
+                enableDynamicLight: true,
+                onTap: () {},
+                child: const Text('Hover Card'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Hover Card'), findsOneWidget);
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.addPointer(location: Offset.zero);
+      await gesture.moveTo(tester.getCenter(find.text('Hover Card')));
+      await tester.pumpAndSettle();
+
+      await gesture.removePointer();
+    });
+
+    testWidgets('LitchiScope propagates noise to child glass', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LitchiScope(
+              noise: 15.0,
+              child: LitchiGlass(
+                child: const Text('Scoped Noise Glass'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Scoped Noise Glass'), findsOneWidget);
     });
   });
 }

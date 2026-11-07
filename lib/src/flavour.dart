@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Calculates the (begin, end) [Alignment] pair for a given angle in degrees.
@@ -127,6 +128,7 @@ class LitchiFlavour {
     this.innerSheen = true,
     this.specularOpacity = 0.6,
     this.secondarySpecularOpacity = 0.35,
+    this.noise = 0.0,
     this.fallbackColor = const Color(0xCC1E1E24),
   });
 
@@ -140,6 +142,7 @@ class LitchiFlavour {
     double dispersion = 20.0,
     double frost = 25.0,
     double splay = 40.0,
+    double noise = 0.0,
     Color tintColor = const Color(0x1AFFFFFF),
     double borderWidth = 1.2,
     bool innerSheen = true,
@@ -163,6 +166,7 @@ class LitchiFlavour {
       innerSheen: innerSheen,
       specularOpacity: specular,
       secondarySpecularOpacity: specular * 0.5,
+      noise: noise,
       fallbackColor: fallbackColor,
     );
   }
@@ -212,6 +216,9 @@ class LitchiFlavour {
   /// Opacity of the secondary bounce highlight rim at the opposite edge.
   final double secondarySpecularOpacity;
 
+  /// Micro-surface roughness / film grain noise percentage (0% to 100%).
+  final double noise;
+
   /// Solid or semi-opaque fallback color when blur is disabled (e.g. on low-end devices).
   final Color fallbackColor;
 
@@ -257,6 +264,7 @@ class LitchiFlavour {
     bool? innerSheen,
     double? specularOpacity,
     double? secondarySpecularOpacity,
+    double? noise,
     Color? fallbackColor,
   }) {
     return LitchiFlavour(
@@ -276,9 +284,92 @@ class LitchiFlavour {
       specularOpacity: specularOpacity ?? this.specularOpacity,
       secondarySpecularOpacity:
           secondarySpecularOpacity ?? this.secondarySpecularOpacity,
+      noise: noise ?? this.noise,
       fallbackColor: fallbackColor ?? this.fallbackColor,
     );
   }
+
+  /// Linearly interpolates between two [LitchiFlavour] presets.
+  static LitchiFlavour? lerp(LitchiFlavour? a, LitchiFlavour? b, double t) {
+    if (identical(a, b)) return a;
+    if (a == null) return b;
+    if (b == null) return a;
+
+    return LitchiFlavour(
+      name: t < 0.5 ? a.name : b.name,
+      lightAngle: ui.lerpDouble(a.lightAngle, b.lightAngle, t) ?? a.lightAngle,
+      lightPercent:
+          ui.lerpDouble(a.lightPercent, b.lightPercent, t) ?? a.lightPercent,
+      refraction: ui.lerpDouble(a.refraction, b.refraction, t) ?? a.refraction,
+      depth: ui.lerpDouble(a.depth, b.depth, t) ?? a.depth,
+      dispersion: ui.lerpDouble(a.dispersion, b.dispersion, t) ?? a.dispersion,
+      frost: ui.lerpDouble(a.frost, b.frost, t) ?? a.frost,
+      splay: ui.lerpDouble(a.splay, b.splay, t) ?? a.splay,
+      blurSigma: ui.lerpDouble(a.blurSigma, b.blurSigma, t) ?? a.blurSigma,
+      tintColor: Color.lerp(a.tintColor, b.tintColor, t) ?? a.tintColor,
+      borderGradient: Gradient.lerp(a.borderGradient, b.borderGradient, t),
+      borderWidth:
+          ui.lerpDouble(a.borderWidth, b.borderWidth, t) ?? a.borderWidth,
+      innerSheen: t < 0.5 ? a.innerSheen : b.innerSheen,
+      specularOpacity:
+          ui.lerpDouble(a.specularOpacity, b.specularOpacity, t) ??
+          a.specularOpacity,
+      secondarySpecularOpacity:
+          ui.lerpDouble(
+            a.secondarySpecularOpacity,
+            b.secondarySpecularOpacity,
+            t,
+          ) ??
+          a.secondarySpecularOpacity,
+      noise: ui.lerpDouble(a.noise, b.noise, t) ?? a.noise,
+      fallbackColor:
+          Color.lerp(a.fallbackColor, b.fallbackColor, t) ?? a.fallbackColor,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LitchiFlavour &&
+        other.name == name &&
+        other.lightAngle == lightAngle &&
+        other.lightPercent == lightPercent &&
+        other.refraction == refraction &&
+        other.depth == depth &&
+        other.dispersion == dispersion &&
+        other.frost == frost &&
+        other.splay == splay &&
+        other.blurSigma == blurSigma &&
+        other.tintColor == tintColor &&
+        other.borderGradient == borderGradient &&
+        other.borderWidth == borderWidth &&
+        other.innerSheen == innerSheen &&
+        other.specularOpacity == specularOpacity &&
+        other.secondarySpecularOpacity == secondarySpecularOpacity &&
+        other.noise == noise &&
+        other.fallbackColor == fallbackColor;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    name,
+    lightAngle,
+    lightPercent,
+    refraction,
+    depth,
+    dispersion,
+    frost,
+    splay,
+    blurSigma,
+    tintColor,
+    borderGradient,
+    borderWidth,
+    innerSheen,
+    specularOpacity,
+    secondarySpecularOpacity,
+    noise,
+    fallbackColor,
+  );
 
   /// Fresh, crisp morning dew with high translucency, crystalline clarity, and subtle rainbow rim.
   static const LitchiFlavour dewy = LitchiFlavour(
@@ -295,6 +386,7 @@ class LitchiFlavour {
     borderWidth: 1.0,
     specularOpacity: 0.48,
     secondarySpecularOpacity: 0.22,
+    noise: 0.0,
     fallbackColor: Color(0xD912151D),
   );
 
@@ -313,6 +405,7 @@ class LitchiFlavour {
     borderWidth: 1.4,
     specularOpacity: 0.75,
     secondarySpecularOpacity: 0.45,
+    noise: 4.0,
     fallbackColor: Color(0xEB2A1820),
   );
 
@@ -331,6 +424,7 @@ class LitchiFlavour {
     borderWidth: 1.1,
     specularOpacity: 0.55,
     secondarySpecularOpacity: 0.3,
+    noise: 14.0,
     fallbackColor: Color(0xEE252530),
   );
 
@@ -349,6 +443,7 @@ class LitchiFlavour {
     borderWidth: 1.5,
     specularOpacity: 0.85,
     secondarySpecularOpacity: 0.5,
+    noise: 0.0,
     fallbackColor: Color(0xCC1A1A22),
   );
 
@@ -367,6 +462,7 @@ class LitchiFlavour {
     borderWidth: 1.3,
     specularOpacity: 0.7,
     secondarySpecularOpacity: 0.4,
+    noise: 6.0,
     fallbackColor: Color(0xEE2A1E24),
   );
 
@@ -385,6 +481,7 @@ class LitchiFlavour {
     borderWidth: 1.2,
     specularOpacity: 0.65,
     secondarySpecularOpacity: 0.4,
+    noise: 4.0,
     fallbackColor: Color(0xEA2A1522),
   );
 
@@ -403,6 +500,7 @@ class LitchiFlavour {
     borderWidth: 1.2,
     specularOpacity: 0.7,
     secondarySpecularOpacity: 0.45,
+    noise: 4.0,
     fallbackColor: Color(0xEA2A2214),
   );
 }

@@ -14,7 +14,7 @@ Instead of sterile, cold blur wrappers or hyper-complex shader configuration man
 
 * **Organic Fruit Flavours:** Pre-configured aesthetic presets (`dewy`, `juicy`, `frosted`, `crystal`, `milkyLitchi`, `roseTint`, `goldenCitrus`).
 * **Tactile Specular Highlights:** Multi-stop rim lighting gradients and ambient overhead specular sheen.
-* **Drop-in Component Suite:** Ready-to-use [`LitchiCard`](class://glass_of_litchi#LitchiCard) and [`LitchiButton`](class://glass_of_litchi#LitchiButton) with spring-driven interactive physics and ambient tinted drop shadows.
+* **Drop-in Component Suite:** Ready-to-use [`LitchiCard`](class://glass_of_litchi#LitchiCard), [`LitchiButton`](class://glass_of_litchi#LitchiButton), [`LitchiChip`](class://glass_of_litchi#LitchiChip), [`LitchiSegmentedControl`](class://glass_of_litchi#LitchiSegmentedControl), [`LitchiTextField`](class://glass_of_litchi#LitchiTextField), [`LitchiDialog`](class://glass_of_litchi#LitchiDialog), and [`LitchiTabBar`](class://glass_of_litchi#LitchiTabBar).
 * **High-FPS Fallback Strategy:** Automatic smooth rendering fallback when blur is disabled or on low-end hardware.
 * **100% Universal Flutter:** Works out of the box on Android, iOS, Web, macOS, Windows, and Linux.
 
@@ -129,7 +129,64 @@ LitchiButton.fromFigma(
 )
 ```
 
-### 6. Core Primitive
+### 6. Interactive Glass Chips (`LitchiChip`)
+Dewy, spring-animated glass pills for tags, filters, and choices:
+```dart
+LitchiChip(
+  leading: const Icon(Icons.auto_awesome, size: 16),
+  label: const Text('Juicy Pulp'),
+  selected: isSelected,
+  flavour: LitchiFlavour.dewy,
+  selectedFlavour: LitchiFlavour.juicy,
+  onSelected: (val) => setState(() => isSelected = val),
+)
+```
+
+### 7. Sliding Segmented Control (`LitchiSegmentedControl`)
+Liquid glass inline selector with a sliding squircle indicator pill:
+```dart
+LitchiSegmentedControl<String>(
+  selectedValue: currentMode,
+  onValueChanged: (val) => setState(() => currentMode = val),
+  segments: const [
+    LitchiSegment(value: 'ice', label: Text('Ice Chilled'), icon: Icon(Icons.ac_unit)),
+    LitchiSegment(value: 'ambient', label: Text('Ambient')),
+    LitchiSegment(value: 'sparkling', label: Text('Sparkling'), badgeText: 'HOT'),
+  ],
+)
+```
+
+### 8. Frosted Glass Input (`LitchiTextField`)
+Dewy translucent text input with glowing specular rim focus transitions:
+```dart
+LitchiTextField(
+  controller: searchController,
+  hintText: 'Search glass beverages...',
+  prefix: const Icon(Icons.search, size: 20),
+  onChanged: (text) => filterItems(text),
+)
+```
+
+### 9. Frosted Glass Dialog & Bottom Sheet (`showLitchiDialog`)
+Custom blurred scrim overlays with squircle spring entrance animations:
+```dart
+showLitchiDialog<void>(
+  context: context,
+  builder: (ctx) => LitchiDialog(
+    title: const Text('Confirm Order? 🍹'),
+    content: const Text('Fresh lychee spritzer with chilled dewy frost.'),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+      LitchiButton(
+        onPressed: () => Navigator.pop(ctx),
+        child: const Text('Confirm'),
+      ),
+    ],
+  ),
+);
+```
+
+### 10. Core Primitive
 ```dart
 LitchiGlass.fromFigma(
   lightAngle: 135.0,
@@ -140,19 +197,24 @@ LitchiGlass.fromFigma(
 )
 ```
 
-### 7. Hardware GPU Fragment Shader Optics (Impeller)
+### 11. Hardware GPU Fragment Shader Optics (Impeller)
 On devices running Flutter's Impeller engine, `glass_of_litchi` uses an embedded GLSL 460 fragment shader (`shaders/refraction.frag`) composed with `ImageFilter.shader` for live optical refraction and chromatic dispersion:
 * **Wavelength Dispersion:** Bends red and blue light rays at different angles along the glass perimeter, creating authentic optical fringing.
 * **Rim Bevel Distortion:** Curves and magnifies background pixels inward along the continuous squircle border.
-* **Zero-Delay Pre-caching:**
+* **Frosted Micro-Roughness / Anti-Banding Noise:** Procedural screen-space stochastic grain eliminates color banding on OLED screens and adds tactile sandblasted texture (`noise: 0% to 100%`).
+* **Dynamic Lighting & Shimmer:** `LitchiCard` and `LitchiButton` actively shimmer their specular rims in real time responding to cursor hover (desktop/web) and spring touch-flex physics.
+* **Flavour Morphing & Interpolation:** Smoothly animate between glass presets using `LitchiFlavour.lerp(a, b, t)`.
+* **Zero-Delay Pre-caching & GPU Pipeline Warmup:**
   ```dart
   void main() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await LitchiGlass.precacheShaders(); // Instant GPU compilation
+    await LitchiGlass.precacheShaders(); // Compiles shader & warms GPU Pipeline State Object (PSO)
     runApp(const MyApp());
   }
   ```
-* **Graceful Fallback:** If fragment shaders are unavailable in the host environment (e.g., legacy Skia or headless test runners), it automatically and silently falls back to standard Gaussian blur.
+* **Graceful Fallback:** If fragment shaders are unavailable in the host environment (e.g., legacy Skia or headless test runners), it automatically and silently falls back to standard Gaussian blur and stochastic canvas grain.
+
+> **💡 Apple-Aligned Local Refraction by Default (`shaderRefraction: false`):** Following Apple's design principles (e.g. visionOS & iOS `UIVisualEffectView`), glass components default to hardware Gaussian blur and authentic G2 squircle rim highlights. This ensures the glass only refracts and diffuses whatever content is directly underneath itself, with zero cross-card bleed, zero whole-screen warping, and buttery 120 FPS performance in scrollable views (`ListView`, `CustomScrollView`). You can opt into `shaderRefraction: true` on static hero panels if experimental Impeller fragment shader chromatic aberration is desired.
 
 ---
 

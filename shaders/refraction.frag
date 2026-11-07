@@ -21,6 +21,8 @@ uniform float uSpecular;
 uniform float uCornerRadius;
 // Slot 8: Center lens magnification factor (e.g. 1.02)
 uniform float uMagnification;
+// Slot 9: Micro-surface roughness / film grain noise (0.0 to 1.0)
+uniform float uNoise;
 
 // Sampler 0: Automatically bound to the backdrop texture
 uniform sampler2D uTexture;
@@ -45,17 +47,16 @@ vec2 getRoundedBoxNormal(vec2 p, vec2 b, float r) {
 
 void main() {
     vec2 fragCoord = FlutterFragCoord().xy;
+    // Strictly map 1:1 to the fragment coordinate so the glass only samples
+    // what is directly beneath itself, avoiding global screen zooming or pulling
+    // in distant elements from across the screen.
     vec2 uv = fragCoord / uSize;
-
-    #ifdef IMPELLER_TARGET_OPENGLES
-    uv.y = 1.0 - uv.y;
-    #endif
 
     vec2 halfSize = uSize * 0.5;
     vec2 p = fragCoord - halfSize;
     float maxRadius = min(halfSize.x, halfSize.y);
     float radius = clamp(uCornerRadius, 0.0, maxRadius);
-    float bevelWidth = clamp(uBevelWidth, 6.0, maxRadius);
+    float bevelWidth = clamp(uBevelWidth, 0.001, max(maxRadius, 0.001));
 
     // Exact signed distance to rounded box boundary (negative inside, 0 at border)
     float d = sdRoundedBox(p, halfSize, radius);
@@ -71,10 +72,14 @@ void main() {
     // Exact outward surface normal at current fragment
     vec2 outwardNormal = getRoundedBoxNormal(p, halfSize, radius);
 
-    // 1. Optical Refraction Displacement (Snell's Law)
-    // Refracts background pixels along the curved bevel rim
-    float maxDisplacement = uRefraction * 8.0;
-    vec2 pixelDisplacement = -outwardNormal * (slope * maxDisplacement);
+    // Snell refraction through a curved air/glass interface. Strength maps
+    // to an artistic effective index (1.0 = air, 1.5 = typical glass).
+    // A finite slab approximation keeps grazing-angle displacement bounded.
+    vec3 surfaceNormal = normalize(vec3(outwardNormal * slope, 1.0));
+    float ior = 1.0 + 0.5 * uRefraction;
+    vec3 ray = refract(vec3(0.0, 0.0, -1.0), surfaceNormal, 1.0 / ior);
+    // Clamp ray displacement strictly to a subtle local optical rim (max 3px)
+    vec2 pixelDisplacement = clamp(ray.xy / max(-ray.z, 0.001) * bevelWidth, -3.0, 3.0);
     vec2 uvDisplacement = pixelDisplacement / uSize;
 
     // 2. Chromatic Dispersion (Wavelength-dependent refractive separation)
@@ -83,10 +88,17 @@ void main() {
     vec2 uvR = uv + uvDisplacement * (1.0 - dispFactor);
     vec2 uvB = uv + uvDisplacement * (1.0 + dispFactor);
 
-    // Clamp UVs to avoid sampler bleeding
-    uvR = clamp(uvR, vec2(0.001), vec2(0.999));
-    uvG = clamp(uvG, vec2(0.001), vec2(0.999));
-    uvB = clamp(uvB, vec2(0.001), vec2(0.999));
+    #ifdef IMPELLER_TARGET_OPENGLES
+    uvR.y = 1.0 - uvR.y;
+    uvG.y = 1.0 - uvG.y;
+    uvB.y = 1.0 - uvB.y;
+    #endif
+
+    // Clamp to texel centers, independent of backdrop resolution.
+    vec2 inset = min(vec2(0.5) / uSize, vec2(0.5));
+    uvR = clamp(uvR, inset, 1.0 - inset);
+    uvG = clamp(uvG, inset, 1.0 - inset);
+    uvB = clamp(uvB, inset, 1.0 - inset);
 
     float r = texture(uTexture, uvR).r;
     float g = texture(uTexture, uvG).g;
@@ -99,7 +111,23 @@ void main() {
     float specularGlint = pow(nDotL, 5.0) * slope * uSpecular * 0.40;
     float bounceRim = pow(max(dot(-outwardNormal, lightSourceDir), 0.0), 3.0) * slope * uSpecular * 0.12;
 
-    vec3 finalColor = vec3(r, g, b) + vec3(specularGlint + bounceRim);
+    // Schlick's approximation weights reflection towards grazing incidence.
+    float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+    float fresnel = f0 + (1.0 - f0) * pow(1.0 - surfaceNormal.z, 5.0);
+    float reflection = (specularGlint + bounceRim) * (0.25 + fresnel);
+
+    // 4. Procedural Frosted Surface Micro-Roughness / Anti-Banding Film Grain
+    vec3 grainOffset = vec3(0.0);
+    if (uNoise > 0.001) {
+        vec3 p3 = fract(vec3(fragCoord.xyx) * 0.1031);
+        p3 += dot(p3, p3.yzx + 33.33);
+        float grain = fract((p3.x + p3.y) * p3.z) - 0.5;
+        grainOffset = vec3(grain * uNoise * 0.14 * a);
+    }
+
+    // Flutter textures are premultiplied: transparent pixels must remain black
+    // and dispersed channels must never exceed the output alpha.
+    vec3 finalColor = clamp(vec3(r, g, b) + vec3(reflection * a) + grainOffset, vec3(0.0), vec3(a));
 
     fragColor = vec4(finalColor, a);
 }

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Precomputed path parameters for a single squircle corner based on Figma's
@@ -40,16 +41,21 @@ class _CornerPathParams {
     }
 
     final clampedRadius = math.min(radius, budget);
-    final maxSmoothing = clampedRadius > 0 ? (budget / clampedRadius - 1.0).clamp(0.0, 1.0) : 0.0;
+    final maxSmoothing = clampedRadius > 0
+        ? (budget / clampedRadius - 1.0).clamp(0.0, 1.0)
+        : 0.0;
     final s = math.min(smoothing, maxSmoothing).clamp(0.0, 1.0);
 
     final p = math.min((1.0 + s) * clampedRadius, budget);
     final arcMeasure = 90.0 * (1.0 - s);
     final arcSectionLength =
-        math.sin((arcMeasure / 2.0) * math.pi / 180.0) * clampedRadius * math.sqrt2;
+        math.sin((arcMeasure / 2.0) * math.pi / 180.0) *
+        clampedRadius *
+        math.sqrt2;
     final angleAlpha = (90.0 - arcMeasure) / 2.0;
 
-    final p3ToP4Distance = clampedRadius * math.tan((angleAlpha / 2.0) * math.pi / 180.0);
+    final p3ToP4Distance =
+        clampedRadius * math.tan((angleAlpha / 2.0) * math.pi / 180.0);
     final angleBeta = 45.0 * s;
 
     final c = p3ToP4Distance * math.cos(angleBeta * math.pi / 180.0);
@@ -279,7 +285,10 @@ class SquirclePath {
     path.close();
 
     if (_cache.length >= _maxCacheEntries) {
-      _cache.clear();
+      // Evict the oldest entry instead of wiping the whole cache, so a single
+      // continuously-animating consumer (e.g. a sliding tab pill) doesn't
+      // repeatedly blow away unrelated cached shapes every frame.
+      _cache.remove(_cache.keys.first);
     }
     _cache[key] = path;
 
@@ -289,10 +298,7 @@ class SquirclePath {
 
 /// Custom clipper that clips widgets along an authentic Figma / Apple squircle path.
 class SquircleClipper extends CustomClipper<Path> {
-  const SquircleClipper({
-    required this.borderRadius,
-    this.smoothing = 0.6,
-  });
+  const SquircleClipper({required this.borderRadius, this.smoothing = 0.6});
 
   final BorderRadius borderRadius;
   final double smoothing;

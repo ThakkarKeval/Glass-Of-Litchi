@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
 import 'package:flutter/widgets.dart';
 
 /// GPU fragment shader pipeline for optical refraction and dispersion in [glass_of_litchi].
@@ -23,7 +24,7 @@ class LitchiShaderPipeline {
   ];
 
   ui.FragmentProgram? _program;
-  bool _isLoading = false;
+  Future<bool>? _loadFuture;
   bool _loadFailed = false;
 
   /// Notifier triggered when the shader program is successfully compiled on the GPU.
@@ -49,17 +50,28 @@ class LitchiShaderPipeline {
   ///   runApp(const MyApp());
   /// }
   /// ```
-  Future<bool> ensureLoaded() async {
-    if (_program != null) return true;
-    if (_isLoading) return false;
-    _isLoading = true;
+  Future<bool> ensureLoaded() {
+    if (_program != null) return Future.value(true);
 
+    // Concurrent callers (e.g. a precacheShaders() in main() racing with the
+    // first LitchiGlass build) must await the same in-flight attempt instead
+    // of each getting an immediate `false` that looks like a real failure.
+    final inFlight = _loadFuture;
+    if (inFlight != null) return inFlight;
+
+    final future = _load();
+    _loadFuture = future;
+    return future;
+  }
+
+  Future<bool> _load() async {
     for (final assetPath in _shaderAssetPaths) {
       try {
         final program = await ui.FragmentProgram.fromAsset(assetPath);
         _program = program;
-        _isLoading = false;
+        _warmup(program);
         _loadFailed = false;
+        _loadFuture = null;
         programNotifier.value = program;
         return true;
       } catch (_) {
@@ -67,9 +79,36 @@ class LitchiShaderPipeline {
       }
     }
 
-    _isLoading = false;
     _loadFailed = true;
+    _loadFuture = null;
     return false;
+  }
+
+  /// Forces the GPU driver to compile the Pipeline State Object (PSO) offscreen,
+  /// eliminating first-frame draw hitching.
+  void _warmup(ui.FragmentProgram program) {
+    try {
+      final shader = program.fragmentShader();
+      shader.setFloat(2, 0.5);
+      shader.setFloat(3, 0.5);
+      shader.setFloat(4, 20.0);
+      shader.setFloat(5, 0.785);
+      shader.setFloat(6, 0.5);
+      shader.setFloat(7, 24.0);
+      shader.setFloat(8, 1.02);
+      shader.setFloat(9, 0.0);
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final paint = Paint()..imageFilter = ui.ImageFilter.shader(shader);
+      canvas.drawRect(const Rect.fromLTWH(0, 0, 2, 2), paint);
+      final picture = recorder.endRecording();
+      final img = picture.toImageSync(2, 2);
+      img.dispose();
+      picture.dispose();
+    } catch (_) {
+      // In headless test environments or unsupported platforms, warmup is safely skipped.
+    }
   }
 
   /// Creates a combined or standalone [ui.ImageFilter] applying optical refraction.
@@ -82,6 +121,7 @@ class LitchiShaderPipeline {
   /// - [specular]: Specular highlight glint intensity (0.0 to 1.0).
   /// - [cornerRadius]: Corner radius in device pixels for rounded-box SDF.
   /// - [magnification]: Subtle central lens magnification (1.0 to 1.15).
+  /// - [noise]: Micro-surface roughness / film grain noise (0.0 to 100.0).
   ui.ImageFilter? createRefractionFilter({
     ui.ImageFilter? baseBlur,
     double refraction = 0.5,
@@ -91,6 +131,7 @@ class LitchiShaderPipeline {
     double specular = 0.5,
     double cornerRadius = 24.0,
     double magnification = 1.02,
+    double noise = 0.0,
   }) {
     final program = _program;
     if (program == null) return baseBlur;
@@ -122,14 +163,16 @@ class LitchiShaderPipeline {
       // Slot 8: uMagnification
       shader.setFloat(8, magnification.clamp(1.0, 1.15));
 
+      // Slot 9: uNoise
+      shader.setFloat(9, (noise / 100.0).clamp(0.0, 1.0));
+
       final shaderFilter = ui.ImageFilter.shader(shader);
 
       if (baseBlur != null) {
-        // Blur first, then optical refraction and dispersion pass over blurred backdrop
-        return ui.ImageFilter.compose(
-          outer: shaderFilter,
-          inner: baseBlur,
-        );
+        // Refract the original backdrop before diffusion. Feeding a padded,
+        // downsampled blur texture into the runtime shader can misalign its
+        // coordinates under a translated clip on Impeller.
+        return ui.ImageFilter.compose(outer: baseBlur, inner: shaderFilter);
       }
       return shaderFilter;
     } catch (_) {

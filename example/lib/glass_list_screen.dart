@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'color_dots_background.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
 class _CategoryData {
@@ -43,8 +45,17 @@ class GlassListScreen extends StatefulWidget {
 
 class _GlassListScreenState extends State<GlassListScreen> {
   String _selectedCategoryId = 'All';
+  String _servingTemp = 'chilled';
   bool _isPlaying = true;
   double _volume = 0.7;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   final List<_CategoryData> _categories = const [
     _CategoryData(id: 'All', label: 'All Drinks', icon: Icons.auto_awesome),
@@ -108,10 +119,17 @@ class _GlassListScreenState extends State<GlassListScreen> {
   ];
 
   List<_MenuItem> get _filteredMenuItems {
-    if (_selectedCategoryId == 'All') return _allMenuItems;
-    return _allMenuItems
-        .where((item) => item.categoryId == _selectedCategoryId)
-        .toList();
+    var items = _allMenuItems;
+    if (_selectedCategoryId != 'All') {
+      items = items.where((item) => item.categoryId == _selectedCategoryId).toList();
+    }
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      items = items.where((item) =>
+          item.title.toLowerCase().contains(q) ||
+          item.subtitle.toLowerCase().contains(q)).toList();
+    }
+    return items;
   }
 
   @override
@@ -120,78 +138,7 @@ class _GlassListScreenState extends State<GlassListScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Refined, clean dark titanium & slate canvas (NO murky mud tones)
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF090B10),
-                  Color(0xFF0E1118),
-                  Color(0xFF131722),
-                  Color(0xFF090B10),
-                ],
-                stops: [0.0, 0.35, 0.70, 1.0],
-              ),
-            ),
-          ),
-
-          // 2. Luminous, elegant ambient blooms (Rose Litchi Blush + Glacier Cyan)
-          Positioned(
-            top: 20,
-            left: -40,
-            child: Container(
-              width: 360,
-              height: 360,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x4DFF4D79), // Fresh glowing lychee blush
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.75],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 360,
-            right: -60,
-            child: Container(
-              width: 360,
-              height: 360,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x3300E5FF), // Ethereal glacier ice dew cyan
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.75],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: -40,
-            child: Container(
-              width: 340,
-              height: 340,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x384B39EF), // Deep serene sapphire indigo
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.75],
-                ),
-              ),
-            ),
-          ),
+          const AmbientMeshBackground(),
 
           // 3. Scrollable list of glass views
           SafeArea(
@@ -213,30 +160,21 @@ class _GlassListScreenState extends State<GlassListScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: LitchiGlass(
-                              flavour: LitchiFlavour.dewy,
-                              borderRadius: BorderRadius.circular(20.0),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
-                                vertical: 11.0,
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    color: Colors.white70,
-                                    size: 20.0,
-                                  ),
-                                  SizedBox(width: 10.0),
-                                  Text(
-                                    'Search glass beverages...',
-                                    style: TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 14.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            child: LitchiTextField(
+                              controller: _searchController,
+                              hintText: 'Search glass beverages...',
+                              prefix: const Icon(Icons.search, size: 20.0),
+                              suffix: _searchQuery.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      },
+                                      child: const Icon(Icons.close, size: 18.0),
+                                    )
+                                  : null,
+                              onChanged: (val) =>
+                                  setState(() => _searchQuery = val),
                             ),
                           ),
                           const SizedBox(width: 12.0),
@@ -245,7 +183,48 @@ class _GlassListScreenState extends State<GlassListScreen> {
                             borderRadius: BorderRadius.circular(16.0),
                             padding: const EdgeInsets.all(11.0),
                             elevation: 4.0,
-                            onTap: () {},
+                            onTap: () {
+                              showLitchiModalBottomSheet<void>(
+                                context: context,
+                                builder: (ctx) => Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Glass Notifications 🔔',
+                                        style: TextStyle(
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12.0),
+                                      const Text(
+                                        '• Happy Hour: 2-for-1 on all Lychee Fizz cocktails.\n'
+                                        '• New Seasonal Flavor: Frosted Matcha Dew is back!\n'
+                                        '• Impeller shader pipeline preloaded and running at 120 FPS.',
+                                        style: TextStyle(
+                                          fontSize: 14.0,
+                                          color: Colors.white70,
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24.0),
+                                      LitchiButton(
+                                        flavour: LitchiFlavour.juicy,
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: const Center(
+                                          child: Text('Got It'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                             child: const Icon(
                               Icons.notifications_outlined,
                               color: Colors.white,
@@ -377,10 +356,47 @@ class _GlassListScreenState extends State<GlassListScreen> {
                                     tintColor: const Color(0x40FF4D79),
                                   ),
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Ordered Lychee Rose Spritzer! 🍹'),
-                                        duration: Duration(seconds: 1),
+                                    showLitchiDialog<void>(
+                                      context: context,
+                                      builder: (ctx) => LitchiDialog(
+                                        title: const Text('Order Spritzer? 🍹'),
+                                        content: const Text(
+                                          'Place an order for the signature Lychee Rose Spritzer '
+                                          'with crushed litchi fruit and sparkling dewy frost?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: const Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                color: Colors.white60,
+                                              ),
+                                            ),
+                                          ),
+                                          LitchiButton(
+                                            flavour: LitchiFlavour.juicy,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16.0,
+                                              vertical: 10.0,
+                                            ),
+                                            onPressed: () {
+                                              Navigator.pop(ctx);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Ordered Lychee Rose Spritzer! 🍹',
+                                                  ),
+                                                  duration: Duration(
+                                                    seconds: 2,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: const Text('Confirm Order'),
+                                          ),
+                                        ],
                                       ),
                                     );
                                   },
@@ -547,6 +563,38 @@ class _GlassListScreenState extends State<GlassListScreen> {
 
                   const SliverToBoxAdapter(child: SizedBox(height: 16.0)),
 
+                  // Serving Style Segmented Control
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: LitchiSegmentedControl<String>(
+                        selectedValue: _servingTemp,
+                        onValueChanged: (val) =>
+                            setState(() => _servingTemp = val),
+                        segments: const [
+                          LitchiSegment(
+                            value: 'chilled',
+                            label: Text('Ice Chilled'),
+                            icon: Icon(Icons.ac_unit, size: 15.0),
+                          ),
+                          LitchiSegment(
+                            value: 'ambient',
+                            label: Text('Ambient'),
+                            icon: Icon(Icons.thermostat, size: 15.0),
+                          ),
+                          LitchiSegment(
+                            value: 'sparkling',
+                            label: Text('Sparkling'),
+                            icon: Icon(Icons.bubble_chart, size: 15.0),
+                            badgeText: 'HOT',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 12.0)),
+
                   // Section Header
                   SliverToBoxAdapter(
                     child: Padding(
@@ -583,20 +631,22 @@ class _GlassListScreenState extends State<GlassListScreen> {
                   ),
 
                   // Interactive Glass List Rows
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = _filteredMenuItems[index];
-                        return _buildGlassListItem(
-                          context,
-                          title: item.title,
-                          subtitle: item.subtitle,
-                          price: item.price,
-                          icon: item.icon,
-                          badgeColor: item.badgeColor,
-                        );
-                      },
-                      childCount: _filteredMenuItems.length,
+                  BackdropGroup(
+                    child: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final item = _filteredMenuItems[index];
+                          return _buildGlassListItem(
+                            context,
+                            title: item.title,
+                            subtitle: item.subtitle,
+                            price: item.price,
+                            icon: item.icon,
+                            badgeColor: item.badgeColor,
+                          );
+                        },
+                        childCount: _filteredMenuItems.length,
+                      ),
                     ),
                   ),
 
@@ -611,57 +661,17 @@ class _GlassListScreenState extends State<GlassListScreen> {
   }
 
   Widget _buildGlassCategoryChip(_CategoryData cat, bool isSelected) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedCategoryId = cat.id),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22.0),
-          color: isSelected
-              ? const Color(0x38FF4D79) // Luminous lychee rose glass
-              : const Color(0x12FFFFFF), // Subtle translucent frosted glass
-          border: Border.all(
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.70)
-                : Colors.white.withValues(alpha: 0.12),
-            width: 1.0,
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              cat.icon,
-              size: 15.0,
-              color: isSelected ? Colors.white : Colors.white60,
-            ),
-            const SizedBox(width: 7.0),
-            Text(
-              cat.label,
-              style: TextStyle(
-                fontSize: 13.0,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.white70,
-                letterSpacing: 0.1,
-              ),
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 6.0),
-              Container(
-                width: 5.0,
-                height: 5.0,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ],
-        ),
+    return LitchiChip(
+      leading: Icon(
+        cat.icon,
+        size: 15.0,
+        color: isSelected ? Colors.white : Colors.white60,
       ),
+      label: Text(cat.label),
+      selected: isSelected,
+      flavour: LitchiFlavour.dewy,
+      selectedFlavour: LitchiFlavour.juicy,
+      onSelected: (_) => setState(() => _selectedCategoryId = cat.id),
     );
   }
 
@@ -679,6 +689,8 @@ class _GlassListScreenState extends State<GlassListScreen> {
         flavour: LitchiFlavour.dewy,
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         elevation: 6.0,
+        shaderRefraction: false,
+        groupBackdrop: true,
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
