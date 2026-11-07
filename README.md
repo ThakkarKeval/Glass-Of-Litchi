@@ -12,9 +12,10 @@ Instead of sterile, cold blur wrappers or hyper-complex shader configuration man
 
 ## ✨ Features
 
-* **Organic Fruit Flavours:** Pre-configured aesthetic presets (`dewy`, `juicy`, `frosted`, `crystal`, `milkyLitchi`, `roseTint`, `goldenCitrus`).
+* **Organic Fruit & Luxury Flavours:** Pre-configured aesthetic presets (`dewy`, `juicy`, `frosted`, `crystal`, `milkyLitchi`, `roseTint`, `goldenCitrus`, `liquidMercury`, `polarIce`, `smokedQuartz`).
 * **Tactile Specular Highlights:** Multi-stop rim lighting gradients and ambient overhead specular sheen.
-* **Drop-in Component Suite:** Ready-to-use [`LitchiCard`](class://glass_of_litchi#LitchiCard), [`LitchiButton`](class://glass_of_litchi#LitchiButton), [`LitchiChip`](class://glass_of_litchi#LitchiChip), [`LitchiSegmentedControl`](class://glass_of_litchi#LitchiSegmentedControl), [`LitchiTextField`](class://glass_of_litchi#LitchiTextField), [`LitchiDialog`](class://glass_of_litchi#LitchiDialog), and [`LitchiTabBar`](class://glass_of_litchi#LitchiTabBar).
+* **Apple Vibrancy & Saturation:** Hardware Rec. 709 saturation boost (`vibrancy`) ensuring colors pop beneath frosted glass without washing out into gray.
+* **Drop-in Component Suite:** Ready-to-use `LitchiCard`, `LitchiButton`, `LitchiChip`, `LitchiSegmentedControl`, `LitchiTextField`, `LitchiDialog`, and `LitchiTabBar`.
 * **High-FPS Fallback Strategy:** Automatic smooth rendering fallback when blur is disabled or on low-end hardware.
 * **100% Universal Flutter:** Works out of the box on Android, iOS, Web, macOS, Windows, and Linux.
 
