@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'flavour.dart';
@@ -7,6 +7,7 @@ import 'squircle.dart';
 
 /// Represents a single option item in a [LitchiSegmentedControl].
 class LitchiSegment<T> {
+  /// Creates a segment option for [LitchiSegmentedControl].
   const LitchiSegment({
     required this.value,
     required this.label,
@@ -32,6 +33,7 @@ class LitchiSegment<T> {
 ///
 /// Features Apple continuous curvature, tactile haptics, and fruit-toned presets.
 class LitchiSegmentedControl<T> extends StatefulWidget {
+  /// Creates a horizontal glass segmented control.
   const LitchiSegmentedControl({
     super.key,
     required this.segments,

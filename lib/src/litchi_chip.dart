@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'flavour.dart';
@@ -9,6 +9,7 @@ import 'litchi_glass.dart';
 /// Features Apple continuous squircle curvature, tactile spring-press physics,
 /// and smooth transitions between unselected and selected glass flavours.
 class LitchiChip extends StatefulWidget {
+  /// Creates an interactive glass chip with squircle curvature and spring-press physics.
   const LitchiChip({
     super.key,
     required this.label,

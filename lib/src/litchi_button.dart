@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'flavour.dart';
@@ -7,6 +7,7 @@ import 'litchi_glass.dart';
 /// A tactile, dewy glass button with spring-driven press physics and specular sheen.
 /// Supports Figma Glass parameters and Apple continuous corner squircle smoothing.
 class LitchiButton extends StatefulWidget {
+  /// Creates a tactile, dewy glass button.
   const LitchiButton({
     super.key,
     required this.onPressed,

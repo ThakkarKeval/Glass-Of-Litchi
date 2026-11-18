@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'flavour.dart';
@@ -7,6 +7,7 @@ import 'squircle.dart';
 
 /// Represents a single navigation destination item in a [LitchiTabBar].
 class LitchiTabItem {
+  /// Creates a tab destination for [LitchiTabBar].
   const LitchiTabItem({
     required this.icon,
     this.selectedIcon,
@@ -32,6 +33,7 @@ class LitchiTabItem {
 ///
 /// Supports Figma Glass optics, Apple continuous corner curvature, and tactile haptics.
 class LitchiTabBar extends StatefulWidget {
+  /// Creates a floating glass navigation bar.
   const LitchiTabBar({
     super.key,
     required this.items,
@@ -182,9 +184,11 @@ class _LitchiTabBarState extends State<LitchiTabBar>
                 animation: _pillAnimation,
                 builder: (context, child) {
                   final t = _pillAnimation.value;
+                  final safeTargetIndex = widget.selectedIndex.clamp(0, tabCount - 1);
+                  final safePrevIndex = _previousIndex.clamp(0, tabCount - 1);
                   // Interpolate horizontal position between previous and target tab
-                  final startX = _previousIndex * tabWidth;
-                  final targetX = widget.selectedIndex * tabWidth;
+                  final startX = safePrevIndex * tabWidth;
+                  final targetX = safeTargetIndex * tabWidth;
                   final currentX = startX + (targetX - startX) * t;
 
                   // Fluid squash & stretch physics during motion

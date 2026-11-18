@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// An ambient scope that coordinates scene lighting, squircle corner curvature,
 /// and high-performance crystal mode across all nested [LitchiGlass], [LitchiCard], and [LitchiButton] widgets.
@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 /// (consistent key light angle, brightness, dispersion, and squircle corner smoothing)
 /// across the entire scene.
 class LitchiScope extends InheritedWidget {
+  /// Creates an ambient lighting and squircle coordination scope for descendant glass widgets.
   const LitchiScope({
     super.key,
     required super.child,

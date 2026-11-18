@@ -17,7 +17,7 @@ Instead of sterile, cold blur wrappers or hyper-complex shader configuration man
 * **Apple Vibrancy & Saturation:** Hardware Rec. 709 saturation boost (`vibrancy`) ensuring colors pop beneath frosted glass without washing out into gray.
 * **Drop-in Component Suite:** Ready-to-use `LitchiCard`, `LitchiButton`, `LitchiChip`, `LitchiSegmentedControl`, `LitchiTextField`, `LitchiDialog`, and `LitchiTabBar`.
 * **High-FPS Fallback Strategy:** Automatic smooth rendering fallback when blur is disabled or on low-end hardware.
-* **100% Universal Flutter:** Works out of the box on Android, iOS, Web, macOS, Windows, and Linux.
+* **100% Universal Flutter:** Works out of the box on Android, iOS, Web, macOS, Windows, and Linux. When running on backends with fragment shader support (Impeller / Skia), optical refraction runs directly on the GPU. On environments without custom shader support (e.g. Web HTML renderer), it automatically and gracefully falls back to hardware Gaussian blur and specular rim gradients.
 
 ---
 
@@ -27,7 +27,7 @@ Add `glass_of_litchi` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  glass_of_litchi: ^0.0.1
+  glass_of_litchi: ^0.0.2
 ```
 
 Import the package:
@@ -58,8 +58,8 @@ LitchiCard(
 )
 ```
 
-### 2. Copy Directly from Figma Glass (1:1 Match)
-Match all standard Figma Glass effect options and Apple squircle continuous curvature directly:
+### 2. Figma Glass-Inspired Parameter Mapping (`.fromFigma`)
+Map intuitive Figma Glass design parameters and Apple continuous squircle curvature directly:
 ```dart
 LitchiCard.fromFigma(
   lightAngle: 135.0,        // 0° to 360° (direction of key light)
@@ -97,11 +97,11 @@ LitchiTabBar(
   <img src="doc/tab_bar.png" alt="Floating Glass Tab Bar" width="540" />
 </p>
 
-### 4. 120 FPS High-Performance Feeds (`LitchiScope`)
+### 4. High-Performance Smooth Scrolling (`LitchiScope`)
 Eliminate the multi-`BackdropFilter` GPU bottleneck in scrolling feeds with `liteMode`:
 ```dart
 LitchiScope(
-  liteMode: true,            // Zero redundant GPU passes — 120 FPS in scroll views
+  liteMode: true,            // Avoid redundant GPU saveLayer passes in scroll views
   cornerSmoothing: 0.6,      // Unified Apple continuous curvature
   lightAngle: 135.0,         // Unified physical scene lighting
   child: ListView(

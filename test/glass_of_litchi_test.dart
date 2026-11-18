@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glass_of_litchi/glass_of_litchi.dart';
 
@@ -952,6 +952,133 @@ void main() {
       expect(find.text('Chip with Vibrancy'), findsOneWidget);
       expect(find.text('Search...'), findsOneWidget);
       expect(find.text('One'), findsOneWidget);
+    });
+
+    group('Stabilization & Robustness (0.0.2)', () {
+      test(
+        'SquirclePath handles zero, negative, and extreme dimensions safely',
+        () {
+          final zeroPath = SquirclePath.create(
+            rect: Rect.zero,
+            borderRadius: const BorderRadius.all(Radius.circular(16)),
+          );
+          expect(zeroPath.getBounds(), Rect.zero);
+
+          final negativePath = SquirclePath.create(
+            rect: const Rect.fromLTWH(0, 0, -10, -10),
+            borderRadius: const BorderRadius.all(Radius.circular(16)),
+          );
+          expect(negativePath.getBounds(), Rect.zero);
+
+          final extremeRadiusPath = SquirclePath.create(
+            rect: const Rect.fromLTWH(0, 0, 100, 100),
+            borderRadius: const BorderRadius.all(Radius.circular(10000)),
+          );
+          expect(extremeRadiusPath, isNotNull);
+          expect(
+            extremeRadiusPath.getBounds().width,
+            lessThanOrEqualTo(100.01),
+          );
+        },
+      );
+
+      testWidgets('LitchiTabBar clamps out-of-bounds selectedIndex safely', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: LitchiTabBar(
+                items: const [
+                  LitchiTabItem(icon: Icons.home, label: 'Home'),
+                  LitchiTabItem(icon: Icons.search, label: 'Search'),
+                ],
+                selectedIndex: 999,
+                onTabSelected: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Home'), findsOneWidget);
+        expect(find.text('Search'), findsOneWidget);
+      });
+
+      testWidgets(
+        'LitchiButton disabled state disables interaction and semantics',
+        (tester) async {
+          await tester.pumpWidget(
+            const MaterialApp(
+              home: Scaffold(
+                body: LitchiButton(
+                  onPressed: null,
+                  child: Text('Disabled Button'),
+                ),
+              ),
+            ),
+          );
+
+          await tester.tap(find.text('Disabled Button'));
+          await tester.pumpAndSettle();
+          expect(find.text('Disabled Button'), findsOneWidget);
+        },
+      );
+
+      testWidgets('LitchiTextField renders cleanly at large text scale', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(2.5)),
+              child: Scaffold(
+                body: LitchiTextField(
+                  hintText: 'Accessible Large Text',
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(find.text('Accessible Large Text'), findsOneWidget);
+      });
+
+      testWidgets('Dialog closes and cleans up overlay correctly', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showLitchiDialog<void>(
+                      context: context,
+                      builder: (ctx) => LitchiDialog(
+                        title: const Text('Test Dialog'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Close'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('Open Dialog'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
+        expect(find.text('Test Dialog'), findsOneWidget);
+
+        await tester.tap(find.text('Close'));
+        await tester.pumpAndSettle();
+        expect(find.text('Test Dialog'), findsNothing);
+      });
     });
   });
 }

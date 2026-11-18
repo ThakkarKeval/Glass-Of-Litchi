@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Calculates the (begin, end) [Alignment] pair for a given angle in degrees.
 ///
@@ -146,6 +146,7 @@ List<double> createVibrancyMatrix(double vibrancy) {
 /// Pre-configured styling flavours for [LitchiGlass] and [LitchiCard] that map
 /// directly to popular Figma Glass effect parameters.
 class LitchiFlavour {
+  /// Creates a [LitchiFlavour] specifying optical, specular, tint, and shadow properties.
   const LitchiFlavour({
     required this.name,
     this.lightAngle = 135.0,

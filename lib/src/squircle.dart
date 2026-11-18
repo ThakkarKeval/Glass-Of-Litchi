@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Precomputed path parameters for a single squircle corner based on Figma's
 /// mathematical derivation (cubic Bézier ramp-up, circular arc, cubic Bézier ramp-down).
@@ -101,6 +101,10 @@ class SquirclePath {
     required BorderRadius borderRadius,
     double smoothing = 0.6,
   }) {
+    if (rect.width <= 0.0 || rect.height <= 0.0) {
+      return Path();
+    }
+
     final clampedSmoothing = smoothing.clamp(0.0, 1.0);
 
     if (clampedSmoothing <= 0.0) {
@@ -298,9 +302,13 @@ class SquirclePath {
 
 /// Custom clipper that clips widgets along an authentic Figma / Apple squircle path.
 class SquircleClipper extends CustomClipper<Path> {
+  /// Creates a [SquircleClipper] with the given [borderRadius] and [smoothing] factor.
   const SquircleClipper({required this.borderRadius, this.smoothing = 0.6});
 
+  /// The border radius applied to the four corners.
   final BorderRadius borderRadius;
+
+  /// The Apple continuous corner smoothing factor (0.0 for standard RRect, up to 1.0).
   final double smoothing;
 
   @override

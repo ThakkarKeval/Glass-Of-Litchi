@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'flavour.dart';
 import 'litchi_scope.dart';
@@ -20,6 +20,7 @@ import 'squircle.dart';
 /// - [splay]: Specular highlight spread along the rim (0% to 100%)
 /// - [cornerSmoothing]: Apple iOS/visionOS continuous squircle curvature (0.0 to 1.0, default: 0.6)
 class LitchiGlass extends StatelessWidget {
+  /// Creates a dewy glass container widget.
   const LitchiGlass({
     super.key,
     required this.child,

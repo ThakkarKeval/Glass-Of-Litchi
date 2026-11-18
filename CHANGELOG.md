@@ -1,3 +1,12 @@
+## 0.0.2
+
+* Migrated imports from deprecated `package:flutter/material.dart` to `package:material_ui/material_ui.dart` for Flutter 3.47+ / 3.50+ compatibility.
+* Corrected repository, homepage, and issue tracker URLs in `pubspec.yaml` to point to the active GitHub repository.
+* Achieved 100% public API documentation coverage across all widget constructors, clippers, and member properties.
+* Hardened `SquirclePath.create` with zero and empty-size bounds guards to prevent degenerate geometric calculations.
+* Hardened `LitchiTabBar` with safe tab index clamping against out-of-bounds selections.
+* Updated documentation with clarified performance details, Figma-inspired parameter mapping explanations, and platform shader fallback descriptions.
+
 ## 0.0.1
 
 * Initial release: `LitchiGlass`, `LitchiCard`, `LitchiButton`, and `LitchiTabBar` with

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'flavour.dart';
 import 'litchi_glass.dart';
@@ -9,6 +9,7 @@ import 'litchi_glass.dart';
 /// Supports direct Figma Glass styling parameters, prefix/suffix widgets,
 /// and smooth focus animations.
 class LitchiTextField extends StatefulWidget {
+  /// Creates a dewy glass text field with glowing specular focus rims and squircle curvature.
   const LitchiTextField({
     super.key,
     this.controller,

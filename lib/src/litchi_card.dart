@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'flavour.dart';
 import 'litchi_glass.dart';
@@ -10,6 +10,7 @@ import 'squircle.dart';
 /// Supports direct 1:1 mapping with Figma Glass effect parameters:
 /// [lightAngle], [lightPercent], [refraction], [depth], [dispersion], [frost], [splay], [cornerSmoothing].
 class LitchiCard extends StatefulWidget {
+  /// Creates a drop-in glass card with squircle curvature and tactile spring physics.
   const LitchiCard({
     super.key,
     required this.child,

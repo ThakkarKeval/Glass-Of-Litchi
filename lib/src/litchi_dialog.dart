@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'flavour.dart';
 import 'litchi_card.dart';
@@ -9,6 +9,7 @@ import 'litchi_glass.dart';
 /// A drop-in, frosted glass alert dialog with Apple continuous squircle curvature
 /// and fruit-toned presets.
 class LitchiDialog extends StatelessWidget {
+  /// Creates a frosted glass alert dialog with squircle curvature.
   const LitchiDialog({
     super.key,
     this.title,
